@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能车辆电路图资料导航 Chatbot</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 标题栏 -->
+        <div class="header">
+            <h1>🚗 智能车辆电路图资料导航 Chatbot</h1>
+        </div>
+
+        <!-- 对话历史区域 -->
+        <div class="chat-area" id="chatArea">
+            <!-- 欢迎消息 -->
+            <div class="message message-bot">
+                <div class="message-content">
+                    您好！我是智能车辆电路图资料导航助手。<br>
+                    我可以帮您查找 4000+ 条电路图资料。<br>
+                    请输入您要查找的内容，例如："红岩杰狮保险丝图纸"
+                </div>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="inputBox" 
+                class="input-box" 
+                placeholder="请输入您的问题..."
+                autocomplete="off"
+            >
+            <button id="sendBtn" class="send-btn">发送</button>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+        <div class="loading-spinner"></div>
+        <span>正在思考中...</span>
+    </div>
+
+    <!-- 引入 JavaScript -->
+    <script src="/js/chat.js"></script>
+</body>
+</html>
