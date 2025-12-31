@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="项目初始化构建">
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -43,12 +42,12 @@
     &quot;assignee&quot;: &quot;boshilin123&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/boshilin123/Chat-Bot.git&quot;,
-    &quot;accountId&quot;: &quot;5f465ca3-ee8c-411c-b5d3-aa61f001cce8&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/boshilin123/Chat-Bot.git",
+    "accountId": "324738f4-7052-4f43-9ed4-bcbd498bb2b8"
   }
-}</component>
+}]]></component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -116,7 +115,23 @@
       <option name="project" value="LOCAL" />
       <updated>1767149451840</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="项目初始化构建">
+      <option name="closed" value="true" />
+      <created>1767152496238</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1767152496238</updated>
+    </task>
+    <task id="LOCAL-00003" summary="项目初始化构建">
+      <option name="closed" value="true" />
+      <created>1767152947456</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1767152947456</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
