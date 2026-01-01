@@ -4,14 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="项目初始化构建">
-      <change afterPath="$PROJECT_DIR$/src/main/resources/static/css/style.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/static/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+    <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="DeepSeek API代码开发">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/controller/ChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/controller/ChatController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/ChatbotApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/ChatbotApplication.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/HomeController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/HomeController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatRequest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatResponseData.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatResponseData.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/CircuitDocument.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/CircuitDocument.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Option.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Option.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Result.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Result.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/SelectRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/SelectRequest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DataLoaderService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DataLoaderService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/static/js/chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/js/chat.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,12 +55,12 @@
     &quot;assignee&quot;: &quot;boshilin123&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/boshilin123/Chat-Bot.git",
-    "accountId": "324738f4-7052-4f43-9ed4-bcbd498bb2b8"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/boshilin123/Chat-Bot.git&quot;,
+    &quot;accountId&quot;: &quot;324738f4-7052-4f43-9ed4-bcbd498bb2b8&quot;
   }
-}]]></component>
+}</component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -70,26 +77,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "Spring Boot.ChatbotApplication.executor": "Run",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Spring Boot.ChatbotApplication.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="ChatbotApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
@@ -116,6 +124,8 @@
       <option name="presentableId" value="Default" />
       <updated>1767146730946</updated>
       <workItem from="1767146732074" duration="3619000" />
+      <workItem from="1767233112648" duration="3670000" />
+      <workItem from="1767256941062" duration="6012000" />
     </task>
     <task id="LOCAL-00001" summary="项目初始化构建">
       <option name="closed" value="true" />
@@ -149,7 +159,31 @@
       <option name="project" value="LOCAL" />
       <updated>1767153386226</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="前端页面的初始化搭建">
+      <option name="closed" value="true" />
+      <created>1767163255545</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1767163255545</updated>
+    </task>
+    <task id="LOCAL-00006" summary="后端框架的构建">
+      <option name="closed" value="true" />
+      <created>1767172715406</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1767172715406</updated>
+    </task>
+    <task id="LOCAL-00007" summary="DeepSeek API代码开发">
+      <option name="closed" value="true" />
+      <created>1767237748718</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1767237748718</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -157,6 +191,9 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="项目初始化构建" />
-    <option name="LAST_COMMIT_MESSAGE" value="项目初始化构建" />
+    <MESSAGE value="前端页面的初始化搭建" />
+    <MESSAGE value="后端框架的构建" />
+    <MESSAGE value="DeepSeek API代码开发" />
+    <option name="LAST_COMMIT_MESSAGE" value="DeepSeek API代码开发" />
   </component>
 </project>

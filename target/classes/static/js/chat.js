@@ -153,6 +153,7 @@ class ChatApp {
     
     /**
      * 添加选择题选项
+     * 使用字母编号：A. B. C. D. E.
      * @param {Array} options - 选项数组
      */
     appendOptions(options) {
@@ -163,14 +164,17 @@ class ChatApp {
         const container = document.createElement('div');
         container.className = 'options-container';
         
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        
         options.forEach((option, index) => {
             const button = document.createElement('button');
             button.className = 'option-button';
-            button.textContent = `${index + 1}. ${option.text}`;
+            const letter = letters[index] || (index + 1);
+            button.textContent = `${letter}. ${option.text}`;
             
             // 点击选项
             button.addEventListener('click', () => {
-                this.selectOption(option, button);
+                this.selectOption(option, button, letter);
             });
             
             container.appendChild(button);
@@ -184,8 +188,9 @@ class ChatApp {
      * 处理用户选择
      * @param {Object} option - 选项对象
      * @param {HTMLElement} button - 按钮元素
+     * @param {string} letter - 选项字母
      */
-    async selectOption(option, button) {
+    async selectOption(option, button, letter) {
         // 禁用所有选项按钮
         const allButtons = button.parentElement.querySelectorAll('.option-button');
         allButtons.forEach(btn => btn.disabled = true);
@@ -194,8 +199,8 @@ class ChatApp {
         button.style.background = '#667eea';
         button.style.color = 'white';
         
-        // 显示用户选择
-        this.appendMessage('user', option.text);
+        // 显示用户选择（只显示字母）
+        this.appendMessage('user', letter);
         
         // 显示加载状态
         this.setLoading(true);
