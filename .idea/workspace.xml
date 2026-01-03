@@ -7,6 +7,11 @@
     <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="DeepSeek API代码开发">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/controller/ChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/controller/ChatController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ConversationManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ConversationManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/KeywordExtractor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/KeywordExtractor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ResultCategorizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ResultCategorizer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/SearchIndex.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/SearchIndex.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/css/style.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/ChatbotApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/ChatbotApplication.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" afterDir="false" />
@@ -17,8 +22,16 @@
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Option.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Option.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Result.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Result.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/SelectRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/SelectRequest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$ConversationState.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$ConversationState.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DataLoaderService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DataLoaderService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/KeywordExtractor.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/KeywordExtractor.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SearchIndex.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SearchIndex.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/css/style.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/static/js/chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/js/chat.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/test-classes/com/bo/chatbot/ChatbotApplicationTests.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/test-classes/com/bo/chatbot/ChatbotApplicationTests.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

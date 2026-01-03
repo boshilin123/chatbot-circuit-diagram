@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -104,7 +105,10 @@ public class ChatController {
     }
 
     /**
-     * 处理搜索结果，根据数量决定返回方式
+     * 处理搜索结果，严格按数量分流
+     * 1条：直接返回结果
+     * 2-5条：显示选择列表
+     * >5条：必须进行分类引导，如果无法分类则显示分页结果
      */
     private Result<ChatResponseData> processSearchResults(String sessionId, 
             List<CircuitDocument> results, QueryInfo queryInfo, int totalCount) {
@@ -114,17 +118,24 @@ public class ChatController {
         }
         
         if (results.size() == 1) {
-            // 唯一结果，直接返回
+            // 1条：直接返回结果
+            log.info("找到唯一结果，直接返回 - ID: {}", results.get(0).getId());
             return Result.success(buildSingleResultResponse(results.get(0)));
         }
         
         if (results.size() <= MAX_RESULTS) {
-            // 结果数量合适，返回选择列表
-            return Result.success(buildOptionsResponse(results, totalCount));
+            // 2-5条：显示选择列表
+            log.info("找到 {} 条结果，显示选择列表", results.size());
+            return Result.success(buildOptionsResponse(results, results.size()));
         }
         
-        // 结果较多，尝试分类引导
-        ResultCategorizer.CategoryResult category = resultCategorizer.categorize(results, totalCount);
+        // >5条：必须进行分类引导
+        log.info("找到 {} 条结果，尝试分类引导", results.size());
+        
+        // 获取会话状态，传递已使用的分类类型
+        ConversationManager.ConversationState state = conversationManager.getOrCreateSession(sessionId);
+        ResultCategorizer.CategoryResult category = resultCategorizer.categorize(
+                results, totalCount, state.getUsedCategoryTypes());
         
         if (category != null && category.getOptions().size() >= 2) {
             // 可以分类，返回分类选项
@@ -132,8 +143,7 @@ public class ChatController {
                     category.getCategoryType(), category.getOptions().size());
             
             // 保存分类类型到会话
-            conversationManager.getOrCreateSession(sessionId)
-                    .setLastCategoryType(category.getCategoryType());
+            state.setLastCategoryType(category.getCategoryType());
             
             ChatResponseData data = ChatResponseData.options(
                     category.getPrompt(),
@@ -142,12 +152,9 @@ public class ChatController {
             return Result.success(data);
         }
         
-        // 无法分类，返回前5个结果
-        List<CircuitDocument> topResults = results.stream()
-                .limit(MAX_RESULTS)
-                .collect(Collectors.toList());
-        
-        return Result.success(buildOptionsResponse(topResults, totalCount));
+        // 无法分类，使用分页显示结果
+        log.warn("无法分类 {} 条结果，使用分页显示", results.size());
+        return buildPaginatedResponse(sessionId, results, totalCount, 0);
     }
     
     /**
@@ -165,6 +172,11 @@ public class ChatController {
             
             if (optionValue == null || optionValue.trim().isEmpty()) {
                 return Result.error("选项值不能为空");
+            }
+            
+            // 检查是否是分页请求
+            if ("next_page".equals(optionValue)) {
+                return handleNextPageRequest(sessionId);
             }
             
             // 检查是否是分类选择
@@ -193,29 +205,123 @@ public class ChatController {
             return Result.error("会话已过期，请重新搜索");
         }
         
-        // 获取分类类型
+        // 获取会话状态
         ConversationManager.ConversationState state = conversationManager.getSession(sessionId);
-        String categoryType = state != null ? state.getLastCategoryType() : "model";
         
-        // 筛选结果
-        List<CircuitDocument> filtered = resultCategorizer.filterByCategory(
-                lastResults, categoryType, categoryValue);
+        List<CircuitDocument> filtered = null;
+        String actualCategoryType = null;
         
-        log.info("分类筛选 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
-                categoryType, categoryValue, lastResults.size(), filtered.size());
+        // 优先在当前结果中筛选
+        if (state != null) {
+            // 首先尝试使用当前分类类型（最准确）
+            String currentCategoryType = state.getLastCategoryType();
+            if (currentCategoryType != null) {
+                List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
+                        lastResults, currentCategoryType, categoryValue);
+                
+                if (!tryFiltered.isEmpty()) {
+                    filtered = tryFiltered;
+                    actualCategoryType = currentCategoryType;
+                    log.info("当前结果筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                            currentCategoryType, categoryValue, lastResults.size(), filtered.size());
+                }
+            }
+            
+            // 如果当前分类类型没有结果，再尝试其他类型
+            if (filtered == null || filtered.isEmpty()) {
+                // 动态判断分类类型：尝试所有可能的分类类型
+                String[] possibleTypes = {"brand", "model", "component", "ecu"};
+                
+                for (String tryType : possibleTypes) {
+                    // 跳过已经尝试过的当前分类类型
+                    if (tryType.equals(currentCategoryType)) {
+                        continue;
+                    }
+                    
+                    List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
+                            lastResults, tryType, categoryValue);
+                    
+                    if (!tryFiltered.isEmpty()) {
+                        filtered = tryFiltered;
+                        actualCategoryType = tryType;
+                        log.info("备用类型筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                                tryType, categoryValue, lastResults.size(), filtered.size());
+                        break;
+                    }
+                }
+            }
+            
+            // 如果当前结果中没有找到，尝试智能回退
+            if ((filtered == null || filtered.isEmpty()) && state.getNarrowingStep() > 0) {
+                log.info("当前结果中未找到匹配项，尝试智能回退 - 值: {}, 当前步骤: {}", 
+                        categoryValue, state.getNarrowingStep());
+                
+                // 尝试在原始搜索结果中查找该选项
+                QueryInfo originalQuery = conversationManager.getLastQuery(sessionId);
+                if (originalQuery != null) {
+                    // 重新执行搜索获取原始结果
+                    List<CircuitDocument> originalResults = smartSearchEngine.search(originalQuery);
+                    
+                    // 在原始结果中尝试筛选
+                    String[] allPossibleTypes = {"brand", "model", "component", "ecu"};
+                    for (String tryType : allPossibleTypes) {
+                        List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
+                                originalResults, tryType, categoryValue);
+                        
+                        if (!tryFiltered.isEmpty()) {
+                            filtered = tryFiltered;
+                            actualCategoryType = tryType;
+                            log.info("原始结果筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                                    tryType, categoryValue, originalResults.size(), filtered.size());
+                            
+                            // 重置会话状态到初始状态
+                            state.setLastResults(originalResults);
+                            state.setNarrowingStep(0);
+                            state.resetUsedCategoryTypes();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果仍然没有结果，给出友好提示
+        if (filtered == null || filtered.isEmpty()) {
+            String friendlyMessage = String.format(
+                "抱歉，没有找到「%s」相关的资料。\n\n" +
+                "💡 这可能是因为您选择了较早步骤的选项。建议您：\n" +
+                "• 重新开始搜索，使用更具体的关键词\n" +
+                "• 或者尝试其他相关的搜索词\n" +
+                "• 例如：\"东风天龙仪表\"、\"天龙ECU针脚\"等", 
+                categoryValue
+            );
+            
+            return Result.success(ChatResponseData.text(friendlyMessage));
+        }
+        
+        // 记录已使用的分类类型
+        if (state != null && actualCategoryType != null) {
+            state.addUsedCategoryType(actualCategoryType);
+        }
+        
+        // 检查筛选是否有效果
+        if (filtered.size() == lastResults.size()) {
+            log.warn("分类筛选无效果，筛选前后数量相同: {}", filtered.size());
+            // 强制标记该分类类型已使用，避免重复
+            if (state != null && actualCategoryType != null) {
+                state.addUsedCategoryType(actualCategoryType);
+            }
+        }
         
         // 更新会话
         conversationManager.updateFilteredResults(sessionId, filtered);
-        
-        // 增加确认步骤计数
-        state.setNarrowingStep(state.getNarrowingStep() + 1);
         
         // 继续处理筛选后的结果（带确认语）
         return processFilteredResults(sessionId, filtered, categoryValue);
     }
     
     /**
-     * 处理筛选后的结果（带确认语）
+     * 处理筛选后的结果（带确认语），严格按数量分流
      */
     private Result<ChatResponseData> processFilteredResults(String sessionId, 
             List<CircuitDocument> results, String selectedCategory) {
@@ -228,37 +334,49 @@ public class ChatController {
         // 构建确认语
         String confirmText = String.format("好的，已选择「%s」。", selectedCategory);
         
+        // 增加确认步骤计数
+        ConversationManager.ConversationState state = conversationManager.getSession(sessionId);
+        if (state != null) {
+            state.setNarrowingStep(state.getNarrowingStep() + 1);
+        }
+        
         if (results.size() == 1) {
-            // 唯一结果，直接返回
+            // 1条：直接返回结果
             String content = String.format("%s\n\n✅ 已为您找到匹配的资料：\n\n[ID: %d] %s", 
                     confirmText, results.get(0).getId(), results.get(0).getFileName());
             return Result.success(ChatResponseData.result(content, results.get(0)));
         }
         
         if (results.size() <= MAX_RESULTS) {
-            // 结果数量合适，返回选择列表
+            // 2-5条：显示选择列表
             return Result.success(buildOptionsResponseWithConfirm(results, results.size(), confirmText));
         }
         
-        // 结果仍然较多，继续分类引导
-        ResultCategorizer.CategoryResult category = resultCategorizer.categorize(results, results.size());
+        // >5条：必须继续分类引导
+        ResultCategorizer.CategoryResult category = resultCategorizer.categorize(
+                results, results.size(), state != null ? state.getUsedCategoryTypes() : new HashSet<>());
         
         if (category != null && category.getOptions().size() >= 2) {
             // 可以继续分类
-            conversationManager.getOrCreateSession(sessionId)
-                    .setLastCategoryType(category.getCategoryType());
+            if (state != null) {
+                state.setLastCategoryType(category.getCategoryType());
+            }
             
             String prompt = confirmText + "\n\n" + category.getPrompt();
             ChatResponseData data = ChatResponseData.options(prompt, category.getOptions());
             return Result.success(data);
         }
         
-        // 无法继续分类，返回前5个结果
-        List<CircuitDocument> topResults = results.stream()
-                .limit(MAX_RESULTS)
-                .collect(Collectors.toList());
+        // 无法继续分类，使用分页显示结果
+        log.warn("筛选后仍有 {} 条结果且无法继续分类，使用分页显示", results.size());
         
-        return Result.success(buildOptionsResponseWithConfirm(topResults, results.size(), confirmText));
+        // 更新会话的完整结果用于分页
+        if (state != null) {
+            state.setAllResults(new ArrayList<>(results));
+            state.setCurrentPage(0);
+        }
+        
+        return buildPaginatedResponseWithConfirm(sessionId, results, confirmText);
     }
     
     /**
@@ -280,8 +398,125 @@ public class ChatController {
     }
     
     /**
-     * 处理文档选择
+     * 处理下一页请求
      */
+    private Result<ChatResponseData> handleNextPageRequest(String sessionId) {
+        List<CircuitDocument> nextPageResults = conversationManager.getNextPageResults(sessionId);
+        
+        if (nextPageResults == null) {
+            return Result.error("会话已过期，请重新搜索");
+        }
+        
+        if (nextPageResults.isEmpty()) {
+            return Result.success(ChatResponseData.text("已经是最后一页了。"));
+        }
+        
+        ConversationManager.PageInfo pageInfo = conversationManager.getPageInfo(sessionId);
+        if (pageInfo == null) {
+            return Result.error("分页信息获取失败");
+        }
+        
+        log.info("显示第 {} 页结果，共 {} 条", pageInfo.getCurrentPage(), nextPageResults.size());
+        
+        return Result.success(buildPaginatedOptionsResponse(nextPageResults, pageInfo));
+    }
+    
+    /**
+     * 构建带确认语的分页响应
+     */
+    private Result<ChatResponseData> buildPaginatedResponseWithConfirm(String sessionId, 
+            List<CircuitDocument> allResults, String confirmText) {
+        
+        // 获取第一页结果
+        List<CircuitDocument> pageResults = conversationManager.getPageResults(sessionId, 0);
+        if (pageResults == null || pageResults.isEmpty()) {
+            return Result.success(ChatResponseData.text("抱歉，没有找到结果。"));
+        }
+        
+        ConversationManager.PageInfo pageInfo = conversationManager.getPageInfo(sessionId);
+        if (pageInfo == null) {
+            return Result.error("分页信息获取失败");
+        }
+        
+        return Result.success(buildPaginatedOptionsResponseWithConfirm(pageResults, pageInfo, confirmText));
+    }
+    
+    /**
+     * 构建带确认语的分页选项响应
+     */
+    private ChatResponseData buildPaginatedOptionsResponseWithConfirm(List<CircuitDocument> results, 
+            ConversationManager.PageInfo pageInfo, String confirmText) {
+        
+        List<Option> options = buildDocumentOptions(results);
+        
+        // 如果有下一页，添加"下一页"选项
+        if (pageInfo.hasNextPage()) {
+            options.add(new Option(
+                options.size() + 1,
+                String.format("📄 查看下一页（第%d页，共%d页）", 
+                        pageInfo.getCurrentPage() + 1, pageInfo.getTotalPages()),
+                "next_page"
+            ));
+        }
+        
+        String prompt = String.format(
+            "%s\n\n我找到了匹配相似度最接近的 %d 条相关资料，由于结果较多无法精确分类，以下是第 %d 页的 %d 条结果：（💡 提示：您可以使用更具体的关键词重新搜索以获得更精准的结果）", 
+            confirmText,
+            pageInfo.getTotalResults(), 
+            pageInfo.getCurrentPage(), 
+            results.size()
+        );
+        
+        return ChatResponseData.options(prompt, options);
+    }
+    
+    /**
+     * 构建分页响应
+     */
+    private Result<ChatResponseData> buildPaginatedResponse(String sessionId, 
+            List<CircuitDocument> allResults, int totalCount, int page) {
+        
+        // 获取指定页的结果
+        List<CircuitDocument> pageResults = conversationManager.getPageResults(sessionId, page);
+        if (pageResults == null || pageResults.isEmpty()) {
+            return Result.success(buildNoResultResponse());
+        }
+        
+        ConversationManager.PageInfo pageInfo = conversationManager.getPageInfo(sessionId);
+        if (pageInfo == null) {
+            return Result.error("分页信息获取失败");
+        }
+        
+        return Result.success(buildPaginatedOptionsResponse(pageResults, pageInfo));
+    }
+    
+    /**
+     * 构建分页选项响应
+     */
+    private ChatResponseData buildPaginatedOptionsResponse(List<CircuitDocument> results, 
+            ConversationManager.PageInfo pageInfo) {
+        
+        List<Option> options = buildDocumentOptions(results);
+        
+        // 如果有下一页，添加"下一页"选项
+        if (pageInfo.hasNextPage()) {
+            options.add(new Option(
+                options.size() + 1,
+                String.format("📄 查看下一页（第%d页，共%d页）", 
+                        pageInfo.getCurrentPage() + 1, pageInfo.getTotalPages()),
+                "next_page"
+            ));
+        }
+        
+        String prompt = String.format(
+            "我找到了匹配相似度最接近的 %d 条相关资料，由于结果较多无法精确分类，以下是第 %d 页的 %d 条结果：（💡 提示：您可以使用更具体的关键词重新搜索以获得更精准的结果）", 
+            pageInfo.getTotalResults(), 
+            pageInfo.getCurrentPage(), 
+            results.size()
+        );
+        
+        return ChatResponseData.options(prompt, options);
+    }
     private Result<ChatResponseData> handleDocumentSelection(String optionValue) {
         try {
             Integer docId = Integer.parseInt(optionValue);
@@ -350,6 +585,38 @@ public class ChatController {
         } else {
             prompt = String.format("我找到了以下 %d 条相关资料，请选择您需要的：", results.size());
         }
+        
+        return ChatResponseData.options(prompt, options);
+    }
+    
+    /**
+     * 构建带警告的选项列表响应（用于无法分类的情况）
+     * 格式：A. [ID: xxx] 文档标题
+     */
+    private ChatResponseData buildOptionsResponseWithWarning(List<CircuitDocument> results, int totalCount) {
+        List<Option> options = buildDocumentOptions(results);
+        
+        String prompt = String.format(
+            "我找到了 %d 条相关资料，由于结果较多无法精确分类，以下是最匹配的 %d 条：\n\n" +
+            "💡 提示：您可以使用更具体的关键词重新搜索以获得更精准的结果。", 
+            totalCount, results.size()
+        );
+        
+        return ChatResponseData.options(prompt, options);
+    }
+    
+    /**
+     * 构建带确认语和警告的选项列表响应（用于筛选后仍无法分类的情况）
+     */
+    private ChatResponseData buildOptionsResponseWithConfirmAndWarning(List<CircuitDocument> results, 
+            int totalCount, String confirmText) {
+        List<Option> options = buildDocumentOptions(results);
+        
+        String prompt = String.format(
+            "%s\n\n找到 %d 条相关资料，由于结果较多无法进一步分类，以下是最匹配的 %d 条：\n\n" +
+            "💡 提示：如需更精确的结果，请重新搜索并使用更具体的关键词。", 
+            confirmText, totalCount, results.size()
+        );
         
         return ChatResponseData.options(prompt, options);
     }

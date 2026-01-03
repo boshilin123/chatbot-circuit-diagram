@@ -147,6 +147,18 @@ body {
     transform: scale(0.98);
 }
 
+/* 返回按钮特殊样式 */
+.option-button.back-button {
+    border-color: #f39c12;
+    color: #f39c12;
+    background: #fff8e1;
+}
+
+.option-button.back-button:hover {
+    background: #f39c12;
+    color: white;
+}
+
 /* 结果展示 */
 .result-container {
     background: #f9f9f9;

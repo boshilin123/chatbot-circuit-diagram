@@ -54,41 +54,60 @@ public class ResultCategorizer {
     
     /**
      * 分析结果并生成分类选项
-     * 优先级：品牌 > 型号系列 > 部件类型
+     * 优先级：品牌 > 型号系列 > 部件类型 > ECU类型
+     * 避免重复使用已使用过的分类类型
      */
     public CategoryResult categorize(List<CircuitDocument> results, int totalCount) {
+        return categorize(results, totalCount, new HashSet<>());
+    }
+    
+    /**
+     * 分析结果并生成分类选项（带已使用分类类型）
+     */
+    public CategoryResult categorize(List<CircuitDocument> results, int totalCount, Set<String> usedTypes) {
         if (results == null || results.size() <= 5) {
             return null;
         }
         
-        // 1. 尝试按品牌分类（如果结果涉及多个品牌）
-        CategoryResult byBrand = categorizeByBrand(results, totalCount);
-        if (byBrand != null && byBrand.getOptions().size() >= MIN_OPTIONS) {
-            log.debug("使用品牌分类，选项数: {}", byBrand.getOptions().size());
-            return byBrand;
+        log.debug("开始分类 - 结果数: {}, 已使用分类: {}", results.size(), usedTypes);
+        
+        // 1. 尝试按品牌分类（如果结果涉及多个品牌且未使用过）
+        if (!usedTypes.contains("brand")) {
+            CategoryResult byBrand = categorizeByBrand(results, totalCount);
+            if (byBrand != null && byBrand.getOptions().size() >= MIN_OPTIONS) {
+                log.debug("使用品牌分类，选项数: {}", byBrand.getOptions().size());
+                return byBrand;
+            }
         }
         
         // 2. 尝试按型号/系列分类
-        CategoryResult byModel = categorizeByModelSeries(results, totalCount);
-        if (byModel != null && byModel.getOptions().size() >= MIN_OPTIONS) {
-            log.debug("使用型号分类，选项数: {}", byModel.getOptions().size());
-            return byModel;
+        if (!usedTypes.contains("model")) {
+            CategoryResult byModel = categorizeByModelSeries(results, totalCount);
+            if (byModel != null && byModel.getOptions().size() >= MIN_OPTIONS) {
+                log.debug("使用型号分类，选项数: {}", byModel.getOptions().size());
+                return byModel;
+            }
         }
         
         // 3. 尝试按部件类型分类
-        CategoryResult byComponent = categorizeByComponent(results, totalCount);
-        if (byComponent != null && byComponent.getOptions().size() >= MIN_OPTIONS) {
-            log.debug("使用部件分类，选项数: {}", byComponent.getOptions().size());
-            return byComponent;
+        if (!usedTypes.contains("component")) {
+            CategoryResult byComponent = categorizeByComponent(results, totalCount);
+            if (byComponent != null && byComponent.getOptions().size() >= MIN_OPTIONS) {
+                log.debug("使用部件分类，选项数: {}", byComponent.getOptions().size());
+                return byComponent;
+            }
         }
         
         // 4. 尝试按ECU类型分类
-        CategoryResult byEcu = categorizeByEcu(results, totalCount);
-        if (byEcu != null && byEcu.getOptions().size() >= MIN_OPTIONS) {
-            log.debug("使用ECU分类，选项数: {}", byEcu.getOptions().size());
-            return byEcu;
+        if (!usedTypes.contains("ecu")) {
+            CategoryResult byEcu = categorizeByEcu(results, totalCount);
+            if (byEcu != null && byEcu.getOptions().size() >= MIN_OPTIONS) {
+                log.debug("使用ECU分类，选项数: {}", byEcu.getOptions().size());
+                return byEcu;
+            }
         }
         
+        log.debug("无法找到有效的分类方式");
         return null;
     }
     
@@ -119,7 +138,7 @@ public class ResultCategorizer {
         }
         
         return buildCategoryResult(brandMap, totalCount, "brand", 
-                "我找到了 %d 条相关资料。请问您需要哪个品牌的？");
+                "请问您需要哪个品牌的？");
     }
     
     /**
@@ -159,7 +178,7 @@ public class ResultCategorizer {
         }
         
         return buildCategoryResult(exclusiveMap, totalCount, "model", 
-                "我找到了 %d 条相关资料。请问您需要哪个型号/系列的？");
+                "请问您需要哪个型号/系列的？");
     }
     
     /**
@@ -253,7 +272,7 @@ public class ResultCategorizer {
         }
         
         return buildCategoryResult(componentMap, totalCount, "component", 
-                "我找到了 %d 条相关资料。请问您需要哪种类型的电路图？");
+                "请问您需要哪种类型的电路图？");
     }
     
     /**
@@ -277,7 +296,7 @@ public class ResultCategorizer {
         }
         
         return buildCategoryResult(ecuMap, totalCount, "ecu", 
-                "我找到了 %d 条相关资料。请问您需要哪种ECU类型的？");
+                "请问您需要哪种ECU类型的？");
     }
     
     /**
@@ -309,8 +328,8 @@ public class ResultCategorizer {
         }
         
         List<Option> options = buildOptions(categoryMap);
-        // 使用分类覆盖的数量，而不是原始总数
-        String prompt = String.format(promptTemplate, coveredCount);
+        // 直接使用提示语模板，不进行数字格式化
+        String prompt = promptTemplate;
         
         return new CategoryResult(categoryType, prompt, options, categoryMap);
     }
@@ -326,8 +345,8 @@ public class ResultCategorizer {
             String label = entry.getKey();
             int count = entry.getValue().size();
             
-            // 选项显示：类别名称 + 数量
-            String displayText = String.format("%s（%d条）", label, count);
+            // 选项显示：只显示类别名称，不显示数量
+            String displayText = label;
             
             // value 存储分类键，用于后续筛选
             options.add(new Option(index++, displayText, "category:" + label));
@@ -398,17 +417,60 @@ public class ResultCategorizer {
                 return false;
                 
             case "component":
-                // 部件匹配
-                if (categoryValue.contains("/")) {
-                    // 如 "ECU/电脑板" 需要匹配任一关键词
-                    return Arrays.stream(categoryValue.split("/")).anyMatch(text::contains);
-                }
-                return text.contains(categoryValue);
+                // 部件匹配 - 改进逻辑，支持互斥分类
+                return matchesComponentCategory(text, categoryValue);
                 
             case "ecu":
                 return text.contains(categoryValue);
                 
             default:
+                return text.contains(categoryValue);
+        }
+    }
+    
+    /**
+     * 部件分类匹配逻辑（支持互斥分类）
+     */
+    private boolean matchesComponentCategory(String text, String categoryValue) {
+        switch (categoryValue) {
+            case "ECU/电脑板":
+                // ECU相关关键词
+                String[] ecuKeywords = {"ECU", "电脑板", "控制器", "ECM", "DCU", "BCM", "VECU", "VCU", "TCU"};
+                return Arrays.stream(ecuKeywords).anyMatch(text::contains);
+                
+            case "仪表/显示器":
+                // 仪表相关关键词，但排除ECU相关
+                String[] meterKeywords = {"仪表", "显示器", "仪表盘", "组合仪表"};
+                String[] excludeKeywords = {"ECU", "电脑板", "控制器", "ECM", "DCU", "BCM", "VECU", "VCU", "TCU"};
+                
+                // 必须包含仪表关键词
+                boolean hasMeterKeyword = Arrays.stream(meterKeywords).anyMatch(text::contains);
+                // 不能包含ECU关键词
+                boolean hasEcuKeyword = Arrays.stream(excludeKeywords).anyMatch(text::contains);
+                
+                return hasMeterKeyword && !hasEcuKeyword;
+                
+            case "保险丝盒":
+                String[] fuseKeywords = {"保险丝", "熔断器", "配电盒", "保险盒"};
+                return Arrays.stream(fuseKeywords).anyMatch(text::contains);
+                
+            case "针脚定义":
+                String[] pinKeywords = {"针脚定义", "针脚图", "接口定义", "插头定义"};
+                return Arrays.stream(pinKeywords).anyMatch(text::contains);
+                
+            case "线束图":
+                String[] wireKeywords = {"线束", "接线图", "布线图", "线路图"};
+                return Arrays.stream(wireKeywords).anyMatch(text::contains);
+                
+            case "整车电路图":
+                String[] vehicleKeywords = {"整车电路图", "整车线路图", "全车电路"};
+                return Arrays.stream(vehicleKeywords).anyMatch(text::contains);
+                
+            default:
+                // 默认使用包含匹配
+                if (categoryValue.contains("/")) {
+                    return Arrays.stream(categoryValue.split("/")).anyMatch(text::contains);
+                }
                 return text.contains(categoryValue);
         }
     }

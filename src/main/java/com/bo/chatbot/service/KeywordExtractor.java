@@ -59,7 +59,7 @@ public class KeywordExtractor {
         SYNONYMS.put("上气", "上汽");
         SYNONYMS.put("许工", "徐工");
         
-        // ECU 型号映射
+        // ECU 型号映射（增强）
         SYNONYMS.put("2880", "CM2880");
         SYNONYMS.put("cm2880", "CM2880");
         SYNONYMS.put("edc7", "EDC7");
@@ -67,6 +67,13 @@ public class KeywordExtractor {
         SYNONYMS.put("dcm3.7", "DCM3.7");
         SYNONYMS.put("c81", "EDC17C81");
         SYNONYMS.put("C81", "EDC17C81");
+        // 新增C81相关映射
+        SYNONYMS.put("c53", "EDC17C53");
+        SYNONYMS.put("C53", "EDC17C53");
+        SYNONYMS.put("c63", "EDC17C63");
+        SYNONYMS.put("C63", "EDC17C63");
+        SYNONYMS.put("c04", "EDC17C04");
+        SYNONYMS.put("C04", "EDC17C04");
         
         // 品牌别名
         SYNONYMS.put("卡特", "卡特彼勒");
@@ -104,9 +111,13 @@ public class KeywordExtractor {
         ECU_TYPES.addAll(Arrays.asList(
             "CM2880", "CM870", "CM2150", "CM2250", "CM2350",
             "EDC7", "EDC17", "EDC7UC31", "EDC7UC32",
+            "EDC17C04", "EDC17C53", "EDC17C55", "EDC17C63", "EDC17C81",
+            "EDC17CV44", "EDC17CV54",
             "DCM3.7", "DCM3.8", "DCM6.2",
-            "MD1", "MD1CC878", "MD1CE",
-            "ECM", "ECU", "VCU", "TCU"
+            "MD1", "MD1CC878", "MD1CE", "MD1CE108", "MD1CS089",
+            "ECM", "ECU", "VCU", "TCU",
+            // 短格式ECU类型
+            "C04", "C53", "C55", "C63", "C81"
         ));
     }
     
@@ -201,20 +212,51 @@ public class KeywordExtractor {
         List<String> found = new ArrayList<>();
         String upperText = text.toUpperCase();
         
+        // 先查找完整的ECU类型
         for (String ecu : ECU_TYPES) {
             if (upperText.contains(ecu.toUpperCase())) {
                 found.add(ecu);
             }
         }
         
+        // 特殊处理：提取EDC17C系列
+        Pattern edcPattern = Pattern.compile("EDC17C(\\d+)", Pattern.CASE_INSENSITIVE);
+        Matcher edcMatcher = edcPattern.matcher(text);
+        while (edcMatcher.find()) {
+            String fullEcu = edcMatcher.group(0).toUpperCase(); // EDC17C81
+            String shortEcu = "C" + edcMatcher.group(1); // C81
+            
+            if (!found.contains(fullEcu)) {
+                found.add(fullEcu);
+            }
+            if (!found.contains(shortEcu)) {
+                found.add(shortEcu);
+            }
+        }
+        
         // 特殊处理：提取纯数字型号（如 2880）
-        Pattern pattern = Pattern.compile("\\b(\\d{4})\\b");
-        Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            String num = matcher.group(1);
+        Pattern numPattern = Pattern.compile("\\b(\\d{4})\\b");
+        Matcher numMatcher = numPattern.matcher(text);
+        while (numMatcher.find()) {
+            String num = numMatcher.group(1);
             String mapped = normalize(num);
             if (!mapped.equals(num) && !found.contains(mapped)) {
                 found.add(mapped);
+            }
+        }
+        
+        // 特殊处理：提取C+数字格式（如 C81）
+        Pattern cPattern = Pattern.compile("\\bC(\\d{2,3})\\b", Pattern.CASE_INSENSITIVE);
+        Matcher cMatcher = cPattern.matcher(text);
+        while (cMatcher.find()) {
+            String shortEcu = cMatcher.group(0).toUpperCase(); // C81
+            String fullEcu = "EDC17" + shortEcu; // EDC17C81
+            
+            if (!found.contains(shortEcu)) {
+                found.add(shortEcu);
+            }
+            if (!found.contains(fullEcu)) {
+                found.add(fullEcu);
             }
         }
         

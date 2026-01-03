@@ -101,10 +101,25 @@ public class SearchIndex {
             brandIndex.computeIfAbsent(brand, k -> new HashSet<>()).add(doc.getId());
         }
         
-        // 提取并索引 ECU 类型
+        // 提取并索引 ECU 类型（增强版）
         List<String> ecus = keywordExtractor.extractEcuTypes(fullText);
         for (String ecu : ecus) {
             ecuIndex.computeIfAbsent(ecu, k -> new HashSet<>()).add(doc.getId());
+        }
+        
+        // 额外的ECU类型提取：从文本中直接提取EDC17C系列
+        if (fullText.contains("EDC17C")) {
+            // 使用正则表达式提取EDC17C后面的数字
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("EDC17C(\\d+)");
+            java.util.regex.Matcher matcher = pattern.matcher(fullText);
+            while (matcher.find()) {
+                String fullEcu = matcher.group(0); // EDC17C81
+                String shortEcu = "C" + matcher.group(1); // C81
+                
+                ecuIndex.computeIfAbsent(fullEcu, k -> new HashSet<>()).add(doc.getId());
+                ecuIndex.computeIfAbsent(shortEcu, k -> new HashSet<>()).add(doc.getId());
+                ecuIndex.computeIfAbsent(shortEcu.toLowerCase(), k -> new HashSet<>()).add(doc.getId());
+            }
         }
         
         // 提取并索引部件
@@ -194,7 +209,23 @@ public class SearchIndex {
         for (String variant : variants) {
             results.addAll(ecuIndex.getOrDefault(variant, Collections.emptySet()));
             results.addAll(ecuIndex.getOrDefault(variant.toUpperCase(), Collections.emptySet()));
+            results.addAll(ecuIndex.getOrDefault(variant.toLowerCase(), Collections.emptySet()));
         }
+        
+        // 如果没有找到结果，尝试模糊匹配
+        if (results.isEmpty()) {
+            String searchTerm = ecuType.toUpperCase();
+            for (Map.Entry<String, Set<Integer>> entry : ecuIndex.entrySet()) {
+                String key = entry.getKey().toUpperCase();
+                // 检查是否包含搜索词或搜索词包含索引键
+                if (key.contains(searchTerm) || searchTerm.contains(key)) {
+                    results.addAll(entry.getValue());
+                }
+            }
+        }
+        
+        log.debug("ECU搜索 - 输入: {}, 标准化: {}, 变体: {}, 结果数: {}", 
+                ecuType, normalized, variants, results.size());
         
         return results;
     }
@@ -264,43 +295,44 @@ public class SearchIndex {
         List<Set<Integer>> resultSets = new ArrayList<>();
         
         // 按品牌搜索
-        if (queryInfo.getBrand() != null && !queryInfo.getBrand().isEmpty() 
-            && !"null".equals(queryInfo.getBrand())) {
+        if (isValidField(queryInfo.getBrand())) {
             Set<Integer> brandResults = searchByBrand(queryInfo.getBrand());
             if (!brandResults.isEmpty()) {
                 resultSets.add(brandResults);
+                log.debug("品牌搜索 - {}: {} 个结果", queryInfo.getBrand(), brandResults.size());
             }
         }
         
         // 按型号搜索
-        if (queryInfo.getModel() != null && !queryInfo.getModel().isEmpty()
-            && !"null".equals(queryInfo.getModel())) {
+        if (isValidField(queryInfo.getModel())) {
             Set<Integer> modelResults = searchByModel(queryInfo.getModel());
             if (!modelResults.isEmpty()) {
                 resultSets.add(modelResults);
+                log.debug("型号搜索 - {}: {} 个结果", queryInfo.getModel(), modelResults.size());
             }
         }
         
         // 按 ECU 搜索
-        if (queryInfo.getEcuType() != null && !queryInfo.getEcuType().isEmpty()
-            && !"null".equals(queryInfo.getEcuType())) {
+        if (isValidField(queryInfo.getEcuType())) {
             Set<Integer> ecuResults = searchByEcu(queryInfo.getEcuType());
             if (!ecuResults.isEmpty()) {
                 resultSets.add(ecuResults);
+                log.debug("ECU搜索 - {}: {} 个结果", queryInfo.getEcuType(), ecuResults.size());
             }
         }
         
         // 按部件搜索
-        if (queryInfo.getComponent() != null && !queryInfo.getComponent().isEmpty()
-            && !"null".equals(queryInfo.getComponent())) {
+        if (isValidField(queryInfo.getComponent())) {
             Set<Integer> componentResults = searchByComponent(queryInfo.getComponent());
             if (!componentResults.isEmpty()) {
                 resultSets.add(componentResults);
+                log.debug("部件搜索 - {}: {} 个结果", queryInfo.getComponent(), componentResults.size());
             }
         }
         
         // 如果没有任何搜索条件，返回空
         if (resultSets.isEmpty()) {
+            log.debug("交集搜索 - 没有有效的搜索条件");
             return Collections.emptySet();
         }
         
@@ -319,6 +351,13 @@ public class SearchIndex {
     }
     
     /**
+     * 检查字段是否有效（不为null、空字符串或"null"字符串）
+     */
+    private boolean isValidField(String field) {
+        return field != null && !field.trim().isEmpty() && !"null".equals(field);
+    }
+    
+    /**
      * 基于 QueryInfo 进行并集搜索（宽松模式）
      * 当交集搜索结果为空时使用
      */
@@ -329,19 +368,28 @@ public class SearchIndex {
         
         Set<Integer> union = new HashSet<>();
         
-        if (queryInfo.getBrand() != null) {
-            union.addAll(searchByBrand(queryInfo.getBrand()));
+        if (isValidField(queryInfo.getBrand())) {
+            Set<Integer> brandResults = searchByBrand(queryInfo.getBrand());
+            union.addAll(brandResults);
+            log.debug("并集搜索 - 品牌 {}: {} 个结果", queryInfo.getBrand(), brandResults.size());
         }
-        if (queryInfo.getModel() != null) {
-            union.addAll(searchByModel(queryInfo.getModel()));
+        if (isValidField(queryInfo.getModel())) {
+            Set<Integer> modelResults = searchByModel(queryInfo.getModel());
+            union.addAll(modelResults);
+            log.debug("并集搜索 - 型号 {}: {} 个结果", queryInfo.getModel(), modelResults.size());
         }
-        if (queryInfo.getEcuType() != null) {
-            union.addAll(searchByEcu(queryInfo.getEcuType()));
+        if (isValidField(queryInfo.getEcuType())) {
+            Set<Integer> ecuResults = searchByEcu(queryInfo.getEcuType());
+            union.addAll(ecuResults);
+            log.debug("并集搜索 - ECU {}: {} 个结果", queryInfo.getEcuType(), ecuResults.size());
         }
-        if (queryInfo.getComponent() != null) {
-            union.addAll(searchByComponent(queryInfo.getComponent()));
+        if (isValidField(queryInfo.getComponent())) {
+            Set<Integer> componentResults = searchByComponent(queryInfo.getComponent());
+            union.addAll(componentResults);
+            log.debug("并集搜索 - 部件 {}: {} 个结果", queryInfo.getComponent(), componentResults.size());
         }
         
+        log.debug("并集搜索 - 总结果数: {}", union.size());
         return union;
     }
     

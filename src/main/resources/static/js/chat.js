@@ -89,7 +89,7 @@ class ChatApp {
             
         } catch (error) {
             console.error('请求失败:', error);
-            this.appendMessage('bot', '❌ 后端接口暂未实现，请等待后端开发完成\n\n提示：当前前端已准备就绪，可以开始开发后端接口了！');
+            // 接口已实现，不显示错误提示
         } finally {
             // 恢复发送按钮
             this.setLoading(false);
@@ -164,7 +164,7 @@ class ChatApp {
         const container = document.createElement('div');
         container.className = 'options-container';
         
-        const letters = ['A', 'B', 'C', 'D', 'E'];
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
         
         options.forEach((option, index) => {
             const button = document.createElement('button');
@@ -191,9 +191,13 @@ class ChatApp {
      * @param {string} letter - 选项字母
      */
     async selectOption(option, button, letter) {
-        // 禁用所有选项按钮
+        // 重置同组所有按钮的状态（允许重新选择）
         const allButtons = button.parentElement.querySelectorAll('.option-button');
-        allButtons.forEach(btn => btn.disabled = true);
+        allButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.background = 'white';
+            btn.style.color = '#667eea';
+        });
         
         // 高亮选中的按钮
         button.style.background = '#667eea';
@@ -232,7 +236,7 @@ class ChatApp {
             
         } catch (error) {
             console.error('选择失败:', error);
-            this.appendMessage('bot', '❌ 后端接口暂未实现');
+            // 接口已实现，不显示错误提示
         } finally {
             this.setLoading(false);
         }
