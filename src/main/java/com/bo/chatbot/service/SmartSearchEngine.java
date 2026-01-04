@@ -31,7 +31,7 @@ public class SmartSearchEngine {
     /**
      * 最小相似度阈值（低于此分数的结果会被过滤）
      */
-    private static final double MIN_SCORE_THRESHOLD = 10.0;
+    private static final double MIN_SCORE_THRESHOLD = 0.1;
     
     @Autowired
     private SearchIndex searchIndex;

@@ -4,45 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能车辆电路图资料导航 Chatbot</title>
+    <!-- 车辆图标 favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <!-- 主容器 -->
     <div class="container">
+        <!-- 历史记录侧边栏 -->
+        <div id="historySidebar" class="history-sidebar">
+            <div class="history-header">
+                <h3>📋 会话管理</h3>
+                <button id="closeHistoryBtn" class="close-history-btn">×</button>
+            </div>
+            <div class="history-content">
+                <!-- 新建会话按钮 -->
+                <div class="new-session-section">
+                    <button id="newSessionBtn" class="new-session-btn">
+                        <span class="btn-icon">➕</span>
+                        <span class="btn-text">新建会话</span>
+                    </button>
+                </div>
+                
+                <!-- 会话列表 -->
+                <div class="session-list-section">
+                    <h4 class="section-title">💬 会话历史</h4>
+                    <div id="sessionList" class="session-list">
+                        <div class="session-empty">
+                            <div class="empty-icon">💭</div>
+                            <p>暂无历史会话</p>
+                            <small>开始对话后，会话记录会显示在这里</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 搜索历史 -->
+                <div class="search-history-section">
+                    <h4 class="section-title">🔍 搜索历史</h4>
+                    <div id="historyList" class="history-list">
+                        <div class="history-empty">
+                            <div class="empty-icon">📝</div>
+                            <p>暂无搜索历史</p>
+                            <small>开始搜索后，历史记录会显示在这里</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="history-actions">
+                    <button id="clearAllBtn" class="clear-all-btn">
+                        <span class="btn-icon">🗑️</span>
+                        清空所有记录
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 遮罩层 -->
+        <div id="historyOverlay" class="history-overlay"></div>
+        
         <!-- 标题栏 -->
         <div class="header">
-            <h1>🚗 智能车辆电路图资料导航 Chatbot</h1>
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🚗</span>
+                    <h1>智能车辆电路图资料导航</h1>
+                </div>
+                <button id="historyBtn" class="history-btn" title="查看历史记录">
+                    <span class="btn-icon">📋</span>
+                    <span class="btn-text">历史记录</span>
+                </button>
+            </div>
         </div>
 
         <!-- 对话历史区域 -->
         <div class="chat-area" id="chatArea">
             <!-- 欢迎消息 -->
             <div class="message message-bot">
+                <div class="avatar bot-avatar">
+                    <span class="avatar-icon">🤖</span>
+                </div>
                 <div class="message-content">
-                    您好！我是智能车辆电路图资料导航助手。<br>
-                    我可以帮您查找 4000+ 条电路图资料。<br>
-                    请输入您要查找的内容，例如："红岩杰狮保险丝图纸"
+                    <div class="message-header">
+                        <span class="sender-name">智能助手</span>
+                        <span class="message-time">刚刚</span>
+                    </div>
+                    <div class="message-text">
+                        您好！我是智能车辆电路图资料导航助手 ✨<br><br>
+                        🎯 拥有 <strong>4000+</strong> 条电路图资料，采用智能搜索技术<br>
+                        ⚡ 简单查询秒级响应，复杂问题AI理解<br>
+                        📋 支持历史记录，方便随时查看<br><br>
+                        💡 <strong>推荐简单搜索</strong>（响应更快）：<br>
+                        <div class="example-queries">
+                            <span class="example-tag">东风天龙仪表</span>
+                            <span class="example-tag">红岩杰狮保险丝</span>
+                            <span class="example-tag">三一4HK1</span>
+                        </div>
+                        请输入您要查找的内容，我来帮您快速定位！😊
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- 输入区域 -->
         <div class="input-area">
-            <input 
-                type="text" 
-                id="inputBox" 
-                class="input-box" 
-                placeholder="请输入您的问题..."
-                autocomplete="off"
-            >
-            <button id="sendBtn" class="send-btn">发送</button>
+            <div class="input-container">
+                <input 
+                    type="text" 
+                    id="inputBox" 
+                    class="input-box" 
+                    placeholder="请输入您的问题..."
+                    autocomplete="off"
+                >
+                <button id="sendBtn" class="send-btn">
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">发送</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- 加载提示 -->
     <div id="loadingIndicator" class="loading-indicator" style="display: none;">
-        <div class="loading-spinner"></div>
-        <span>正在思考中...</span>
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-text">
+                <span class="loading-icon">🤔</span>
+                <span class="loading-message">正在智能分析中...</span>
+            </div>
+        </div>
     </div>
 
     <!-- 引入 JavaScript -->

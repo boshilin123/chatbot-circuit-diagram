@@ -14,6 +14,32 @@ class ChatApp {
         this.sendBtn = document.getElementById('sendBtn');
         this.loadingIndicator = document.getElementById('loadingIndicator');
         
+        // 历史记录相关DOM元素
+        this.historyBtn = document.getElementById('historyBtn');
+        this.historySidebar = document.getElementById('historySidebar');
+        this.historyOverlay = document.getElementById('historyOverlay');
+        this.closeHistoryBtn = document.getElementById('closeHistoryBtn');
+        this.historyList = document.getElementById('historyList');
+        this.clearAllBtn = document.getElementById('clearAllBtn');
+        
+        // 会话管理相关DOM元素
+        this.newSessionBtn = document.getElementById('newSessionBtn');
+        this.sessionList = document.getElementById('sessionList');
+        
+        // 调试信息：检查DOM元素是否正确获取
+        console.log('DOM元素检查:');
+        console.log('newSessionBtn:', this.newSessionBtn);
+        console.log('sessionList:', this.sessionList);
+        console.log('historySidebar:', this.historySidebar);
+        
+        // 历史记录数据
+        this.searchHistory = this.loadSearchHistory();
+        
+        // 会话管理数据
+        this.sessions = this.loadSessions();
+        this.currentSessionId = this.sessionId;
+        this.currentSessionMessages = [];
+        
         // 初始化
         this.init();
         
@@ -35,8 +61,48 @@ class ChatApp {
             }
         });
         
+        // 历史记录相关事件
+        this.historyBtn.addEventListener('click', () => this.openHistory());
+        this.closeHistoryBtn.addEventListener('click', () => this.closeHistory());
+        this.historyOverlay.addEventListener('click', () => this.closeHistory());
+        this.clearAllBtn.addEventListener('click', () => this.clearAllData());
+        
+        // 会话管理相关事件
+        if (this.newSessionBtn) {
+            this.newSessionBtn.addEventListener('click', () => this.createNewSession());
+            console.log('新建会话按钮事件监听已添加');
+        } else {
+            console.error('新建会话按钮未找到！');
+        }
+        
+        // 初始化显示
+        this.renderHistory();
+        this.renderSessions();
+        
+        // 添加示例查询点击事件
+        this.addExampleQueryListeners();
+        
         // 输入框自动聚焦
         this.inputBox.focus();
+    }
+    
+    /**
+     * 添加示例查询点击事件
+     */
+    addExampleQueryListeners() {
+        // 等待DOM加载完成后添加事件监听
+        setTimeout(() => {
+            const exampleTags = document.querySelectorAll('.example-tag');
+            exampleTags.forEach(tag => {
+                tag.addEventListener('click', () => {
+                    const query = tag.textContent.trim();
+                    this.inputBox.value = query;
+                    this.inputBox.focus();
+                    // 可选：自动发送查询
+                    // this.sendMessage();
+                });
+            });
+        }, 100);
     }
     
     /**
@@ -82,6 +148,9 @@ class ChatApp {
             if (result.code === 1) {
                 // 成功：处理业务数据
                 this.handleResponse(result.data);
+                
+                // 保存搜索历史
+                this.saveSearchHistory(message, result.data);
             } else {
                 // 失败：显示错误信息
                 this.appendMessage('bot', '❌ ' + result.msg);
@@ -140,15 +209,385 @@ class ChatApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${role}`;
         
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.textContent = content;
+        // 添加头像
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = `avatar ${role}-avatar`;
+        const avatarIcon = document.createElement('span');
+        avatarIcon.className = 'avatar-icon';
+        avatarIcon.textContent = role === 'bot' ? '🤖' : '👤';
+        avatarDiv.appendChild(avatarIcon);
+        messageDiv.appendChild(avatarDiv);
         
-        messageDiv.appendChild(contentDiv);
+        // 消息内容容器
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'message-content';
+        
+        // 消息头部（发送者和时间）
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        
+        const senderName = document.createElement('span');
+        senderName.className = 'sender-name';
+        senderName.textContent = role === 'bot' ? '智能助手' : '您';
+        
+        const messageTime = document.createElement('span');
+        messageTime.className = 'message-time';
+        messageTime.textContent = new Date().toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        headerDiv.appendChild(senderName);
+        headerDiv.appendChild(messageTime);
+        
+        // 消息文本
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        
+        // 处理HTML内容（支持换行和格式化）
+        if (content.includes('<br>') || content.includes('<strong>') || content.includes('<div>') || content.includes('<span>')) {
+            textDiv.innerHTML = content;
+        } else {
+            textDiv.textContent = content;
+        }
+        
+        contentContainer.appendChild(headerDiv);
+        contentContainer.appendChild(textDiv);
+        messageDiv.appendChild(contentContainer);
+        
         this.chatArea.appendChild(messageDiv);
+        
+        // 保存消息到当前会话
+        this.saveMessageToSession(role, content);
         
         // 滚动到底部
         this.scrollToBottom();
+    }
+    
+    /**
+     * 保存消息到当前会话
+     */
+    saveMessageToSession(role, content) {
+        const message = {
+            role: role,
+            content: content,
+            timestamp: new Date().toISOString()
+        };
+        
+        this.currentSessionMessages.push(message);
+        this.updateCurrentSession();
+    }
+    
+    /**
+     * 更新当前会话
+     */
+    updateCurrentSession() {
+        const sessionIndex = this.sessions.findIndex(s => s.id === this.currentSessionId);
+        
+        if (sessionIndex >= 0) {
+            // 更新现有会话
+            this.sessions[sessionIndex].messages = [...this.currentSessionMessages];
+            this.sessions[sessionIndex].lastMessage = this.getLastUserMessage();
+            this.sessions[sessionIndex].updatedAt = new Date().toISOString();
+        } else {
+            // 创建新会话
+            const newSession = {
+                id: this.currentSessionId,
+                title: this.generateSessionTitle(),
+                messages: [...this.currentSessionMessages],
+                lastMessage: this.getLastUserMessage(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            this.sessions.unshift(newSession);
+        }
+        
+        // 限制会话数量（最多保存20个会话）
+        if (this.sessions.length > 20) {
+            this.sessions = this.sessions.slice(0, 20);
+        }
+        
+        this.saveSessions();
+        this.renderSessions();
+    }
+    
+    /**
+     * 生成会话标题
+     */
+    generateSessionTitle() {
+        const userMessages = this.currentSessionMessages.filter(m => m.role === 'user');
+        if (userMessages.length > 0) {
+            const firstMessage = userMessages[0].content;
+            return firstMessage.length > 20 ? firstMessage.substring(0, 20) + '...' : firstMessage;
+        }
+        return '新会话';
+    }
+    
+    /**
+     * 获取最后一条用户消息
+     */
+    getLastUserMessage() {
+        const userMessages = this.currentSessionMessages.filter(m => m.role === 'user');
+        return userMessages.length > 0 ? userMessages[userMessages.length - 1].content : '';
+    }
+    
+    /**
+     * 创建新会话
+     */
+    createNewSession() {
+        console.log('创建新会话被调用');
+        
+        // 保存当前会话
+        if (this.currentSessionMessages.length > 0) {
+            this.updateCurrentSession();
+            console.log('当前会话已保存，消息数量:', this.currentSessionMessages.length);
+        }
+        
+        // 创建新会话
+        this.sessionId = this.generateSessionId();
+        this.currentSessionId = this.sessionId;
+        this.currentSessionMessages = [];
+        
+        console.log('新会话ID:', this.currentSessionId);
+        
+        // 清空聊天区域，显示欢迎消息
+        this.chatArea.innerHTML = `
+            <div class="message message-bot">
+                <div class="avatar bot-avatar">
+                    <span class="avatar-icon">🤖</span>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="sender-name">智能助手</span>
+                        <span class="message-time">刚刚</span>
+                    </div>
+                    <div class="message-text">
+                        🎉 <strong>新会话已创建！</strong><br><br>
+                        您好！我是智能车辆电路图资料导航助手 ✨<br><br>
+                        🎯 拥有 <strong>4000+</strong> 条电路图资料，采用智能搜索技术<br>
+                        ⚡ 简单查询秒级响应，复杂问题AI理解<br>
+                        📋 支持历史记录，方便随时查看<br><br>
+                        💡 <strong>推荐简单搜索</strong>（响应更快）：<br>
+                        <div class="example-queries">
+                            <span class="example-tag">东风天龙仪表</span>
+                            <span class="example-tag">红岩杰狮保险丝</span>
+                            <span class="example-tag">三一4HK1</span>
+                        </div>
+                        请输入您要查找的内容，我来帮您快速定位！😊
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 重新添加示例查询点击事件
+        this.addExampleQueryListeners();
+        
+        // 更新会话列表显示
+        this.renderSessions();
+        
+        // 关闭侧边栏
+        this.closeHistory();
+        
+        // 聚焦输入框
+        this.inputBox.focus();
+        
+        // 显示成功提示
+        this.showNotification('✅ 新会话已创建！', 'success');
+        
+        console.log('新会话创建完成:', this.currentSessionId);
+    }
+    
+    /**
+     * 切换到指定会话
+     */
+    switchToSession(sessionId) {
+        // 保存当前会话
+        if (this.currentSessionMessages.length > 0) {
+            this.updateCurrentSession();
+        }
+        
+        // 查找目标会话
+        const targetSession = this.sessions.find(s => s.id === sessionId);
+        if (!targetSession) {
+            console.error('会话不存在:', sessionId);
+            return;
+        }
+        
+        // 切换会话
+        this.sessionId = sessionId;
+        this.currentSessionId = sessionId;
+        this.currentSessionMessages = [...targetSession.messages];
+        
+        // 重建聊天界面
+        this.rebuildChatArea(targetSession.messages);
+        
+        // 更新会话列表显示
+        this.renderSessions();
+        
+        // 关闭侧边栏
+        this.closeHistory();
+        
+        // 聚焦输入框
+        this.inputBox.focus();
+        
+        console.log('切换到会话:', sessionId);
+    }
+    
+    /**
+     * 重建聊天区域
+     */
+    rebuildChatArea(messages) {
+        this.chatArea.innerHTML = '';
+        
+        messages.forEach(message => {
+            this.appendMessageFromHistory(message.role, message.content);
+        });
+        
+        // 重新添加示例查询点击事件
+        this.addExampleQueryListeners();
+    }
+    
+    /**
+     * 从历史记录添加消息（不保存到会话）
+     */
+    appendMessageFromHistory(role, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${role}`;
+        
+        // 添加头像
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = `avatar ${role}-avatar`;
+        const avatarIcon = document.createElement('span');
+        avatarIcon.className = 'avatar-icon';
+        avatarIcon.textContent = role === 'bot' ? '🤖' : '👤';
+        avatarDiv.appendChild(avatarIcon);
+        messageDiv.appendChild(avatarDiv);
+        
+        // 消息内容容器
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'message-content';
+        
+        // 消息头部（发送者和时间）
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        
+        const senderName = document.createElement('span');
+        senderName.className = 'sender-name';
+        senderName.textContent = role === 'bot' ? '智能助手' : '您';
+        
+        const messageTime = document.createElement('span');
+        messageTime.className = 'message-time';
+        messageTime.textContent = new Date().toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        headerDiv.appendChild(senderName);
+        headerDiv.appendChild(messageTime);
+        
+        // 消息文本
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        
+        // 处理HTML内容（支持换行和格式化）
+        if (content.includes('<br>') || content.includes('<strong>') || content.includes('<div>') || content.includes('<span>')) {
+            textDiv.innerHTML = content;
+        } else {
+            textDiv.textContent = content;
+        }
+        
+        contentContainer.appendChild(headerDiv);
+        contentContainer.appendChild(textDiv);
+        messageDiv.appendChild(contentContainer);
+        
+        this.chatArea.appendChild(messageDiv);
+    }
+    
+    /**
+     * 删除会话
+     */
+    deleteSession(sessionId) {
+        if (confirm('确定要删除这个会话吗？')) {
+            this.sessions = this.sessions.filter(s => s.id !== sessionId);
+            this.saveSessions();
+            this.renderSessions();
+            
+            // 如果删除的是当前会话，创建新会话
+            if (sessionId === this.currentSessionId) {
+                this.createNewSession();
+            }
+        }
+    }
+    
+    /**
+     * 加载会话数据
+     */
+    loadSessions() {
+        try {
+            const sessions = localStorage.getItem('chatbot_sessions');
+            return sessions ? JSON.parse(sessions) : [];
+        } catch (error) {
+            console.error('加载会话数据失败:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * 保存会话数据
+     */
+    saveSessions() {
+        try {
+            localStorage.setItem('chatbot_sessions', JSON.stringify(this.sessions));
+        } catch (error) {
+            console.error('保存会话数据失败:', error);
+        }
+    }
+    
+    /**
+     * 渲染会话列表
+     */
+    renderSessions() {
+        if (this.sessions.length === 0) {
+            this.sessionList.innerHTML = `
+                <div class="session-empty">
+                    <div class="empty-icon">💭</div>
+                    <p>暂无历史会话</p>
+                    <small>开始对话后，会话记录会显示在这里</small>
+                </div>
+            `;
+            return;
+        }
+        
+        const sessionsHtml = this.sessions.map(session => `
+            <div class="session-item ${session.id === this.currentSessionId ? 'active' : ''}" 
+                 data-session-id="${session.id}">
+                <div class="session-title">${session.title}</div>
+                <div class="session-time">${new Date(session.updatedAt).toLocaleString('zh-CN')}</div>
+                <div class="session-preview">${session.lastMessage}</div>
+                <button class="session-delete" data-session-id="${session.id}">×</button>
+            </div>
+        `).join('');
+        
+        this.sessionList.innerHTML = sessionsHtml;
+        
+        // 添加点击事件
+        this.sessionList.querySelectorAll('.session-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('session-delete')) {
+                    const sessionId = item.dataset.sessionId;
+                    this.switchToSession(sessionId);
+                }
+            });
+        });
+        
+        // 添加删除事件
+        this.sessionList.querySelectorAll('.session-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sessionId = btn.dataset.sessionId;
+                this.deleteSession(sessionId);
+            });
+        });
     }
     
     /**
@@ -306,6 +745,215 @@ class ChatApp {
     setLoading(loading) {
         this.sendBtn.disabled = loading;
         this.loadingIndicator.style.display = loading ? 'flex' : 'none';
+    }
+    
+    /**
+     * 加载搜索历史
+     * @returns {Array} 搜索历史数组
+     */
+    loadSearchHistory() {
+        try {
+            const history = localStorage.getItem('chatbot_search_history');
+            return history ? JSON.parse(history) : [];
+        } catch (error) {
+            console.error('加载搜索历史失败:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * 保存搜索历史
+     * @param {string} query - 搜索查询
+     * @param {Object} response - 响应数据
+     */
+    saveSearchHistory(query, response) {
+        try {
+            const historyItem = {
+                id: Date.now(),
+                query: query,
+                timestamp: new Date().toLocaleString('zh-CN'),
+                type: response.type,
+                resultCount: this.getResultCount(response)
+            };
+            
+            // 添加到历史记录开头
+            this.searchHistory.unshift(historyItem);
+            
+            // 限制历史记录数量（最多保存50条）
+            if (this.searchHistory.length > 50) {
+                this.searchHistory = this.searchHistory.slice(0, 50);
+            }
+            
+            // 保存到localStorage
+            localStorage.setItem('chatbot_search_history', JSON.stringify(this.searchHistory));
+            
+            // 更新历史记录显示
+            this.renderHistory();
+            
+        } catch (error) {
+            console.error('保存搜索历史失败:', error);
+        }
+    }
+    
+    /**
+     * 获取结果数量描述
+     * @param {Object} response - 响应数据
+     * @returns {string} 结果描述
+     */
+    getResultCount(response) {
+        switch (response.type) {
+            case 'result':
+                return '找到1条结果';
+            case 'options':
+                if (response.options) {
+                    const docCount = response.options.filter(opt => !opt.value.includes('next_page')).length;
+                    return `找到${docCount}条结果`;
+                }
+                return '找到多条结果';
+            case 'text':
+                return '文本回复';
+            default:
+                return '未知结果';
+        }
+    }
+    
+    /**
+     * 渲染历史记录
+     */
+    renderHistory() {
+        if (this.searchHistory.length === 0) {
+            this.historyList.innerHTML = `
+                <div class="history-empty">
+                    <div class="empty-icon">📝</div>
+                    <p>暂无搜索历史</p>
+                    <small>开始搜索后，历史记录会显示在这里</small>
+                </div>
+            `;
+            this.clearAllBtn.disabled = true;
+            return;
+        }
+        
+        this.clearAllBtn.disabled = false;
+        
+        const historyHtml = this.searchHistory.map(item => `
+            <div class="history-item" data-query="${item.query}">
+                <div class="history-item-query">${item.query}</div>
+                <div class="history-item-time">${item.timestamp}</div>
+                <div class="history-item-result">${item.resultCount}</div>
+            </div>
+        `).join('');
+        
+        this.historyList.innerHTML = historyHtml;
+        
+        // 添加点击事件
+        this.historyList.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const query = item.dataset.query;
+                this.useHistoryQuery(query);
+            });
+        });
+    }
+    
+    /**
+     * 使用历史查询
+     * @param {string} query - 查询内容
+     */
+    useHistoryQuery(query) {
+        this.inputBox.value = query;
+        this.closeHistory();
+        this.inputBox.focus();
+        
+        // 可选：自动发送查询
+        // this.sendMessage();
+    }
+    
+    /**
+     * 打开历史记录侧边栏
+     */
+    openHistory() {
+        this.historySidebar.classList.add('open');
+        this.historyOverlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    /**
+     * 关闭历史记录侧边栏
+     */
+    closeHistory() {
+        this.historySidebar.classList.remove('open');
+        this.historyOverlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    
+    /**
+     * 显示通知消息
+     * @param {string} message - 通知消息
+     * @param {string} type - 通知类型：success, error, info
+     */
+    showNotification(message, type = 'info') {
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-message">${message}</span>
+                <button class="notification-close">×</button>
+            </div>
+        `;
+        
+        // 添加样式
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#667eea'};
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+            max-width: 300px;
+        `;
+        
+        // 添加到页面
+        document.body.appendChild(notification);
+        
+        // 关闭按钮事件
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => {
+            notification.remove();
+        });
+        
+        // 自动关闭
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 3000);
+    }
+    
+    /**
+     * 清空所有数据（搜索历史和会话记录）
+     */
+    clearAllData() {
+        if (confirm('确定要清空所有搜索历史和会话记录吗？')) {
+            // 清空搜索历史
+            this.searchHistory = [];
+            localStorage.removeItem('chatbot_search_history');
+            
+            // 清空会话记录
+            this.sessions = [];
+            localStorage.removeItem('chatbot_sessions');
+            
+            // 重新渲染
+            this.renderHistory();
+            this.renderSessions();
+            
+            // 创建新会话
+            this.createNewSession();
+        }
     }
     
     /**

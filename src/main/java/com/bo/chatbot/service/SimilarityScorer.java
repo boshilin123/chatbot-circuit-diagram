@@ -92,6 +92,13 @@ public class SimilarityScorer {
             maxPossibleScore += ECU_WEIGHT;
         }
         
+        // 如果没有任何字段匹配，使用原始查询进行全文匹配
+        if (maxPossibleScore == 0 && queryInfo.getOriginalQuery() != null) {
+            double fullTextScore = calculateFieldScore(fullText, queryInfo.getOriginalQuery());
+            totalScore = fullTextScore;
+            maxPossibleScore = 1.0;
+        }
+        
         // 归一化分数到 0-100
         if (maxPossibleScore > 0) {
             return (totalScore / maxPossibleScore) * 100;
@@ -133,7 +140,18 @@ public class SimilarityScorer {
             }
         }
         
-        // 4. 部分匹配（关键词的一部分出现在文本中）
+        // 4. 特殊处理：对于通用设备类型关键词（如"挖掘机"），降低匹配要求
+        if (isGenericEquipmentType(keyword)) {
+            // 检查是否包含相关的设备类型词汇
+            String[] equipmentIndicators = {"挖掘", "挖机", "挖土机", "excavator"};
+            for (String indicator : equipmentIndicators) {
+                if (lowerText.contains(indicator)) {
+                    return PARTIAL_MATCH_SCORE;
+                }
+            }
+        }
+        
+        // 5. 部分匹配（关键词的一部分出现在文本中）
         if (keyword.length() >= 2) {
             // 检查关键词的子串
             for (int i = 0; i < keyword.length() - 1; i++) {
@@ -144,7 +162,7 @@ public class SimilarityScorer {
             }
         }
         
-        // 5. 模糊匹配（文本的一部分出现在关键词中）
+        // 6. 模糊匹配（文本的一部分出现在关键词中）
         String[] words = text.split("[\\s_\\->,，、。]+");
         for (String word : words) {
             if (word.length() >= 2 && lowerKeyword.contains(word.toLowerCase())) {
@@ -153,6 +171,19 @@ public class SimilarityScorer {
         }
         
         return 0;
+    }
+    
+    /**
+     * 判断是否是通用设备类型关键词
+     */
+    private boolean isGenericEquipmentType(String keyword) {
+        String[] genericTypes = {"挖掘机", "装载机", "推土机", "压路机", "起重机", "搅拌车", "自卸车"};
+        for (String type : genericTypes) {
+            if (keyword.contains(type)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**

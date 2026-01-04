@@ -29,7 +29,7 @@ public class ChatController {
     private DataLoaderService dataLoaderService;
     
     @Autowired
-    private QueryUnderstandingService queryUnderstandingService;
+    private OptimizedQueryUnderstandingService optimizedQueryUnderstandingService;
     
     @Autowired
     private SmartSearchEngine smartSearchEngine;
@@ -40,66 +40,182 @@ public class ChatController {
     @Autowired
     private ConversationManager conversationManager;
     
+    @Autowired
+    private CacheService cacheService;
+    
+    @Autowired
+    private RateLimitService rateLimitService;
+    
+    @Autowired
+    private MonitoringService monitoringService;
+    
     /**
      * 发送消息接口
      * POST /api/chat
      */
     @PostMapping("/chat")
-    public Result<ChatResponseData> chat(@RequestBody ChatRequest request) {
-        log.info("收到聊天请求 - SessionId: {}, Message: {}", 
-                request.getSessionId(), request.getMessage());
+    public Result<ChatResponseData> chat(@RequestBody ChatRequest request, 
+                                       jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String sessionId = request.getSessionId();
+        String message = request.getMessage();
+        String clientIp = getClientIp(httpRequest);
+        
+        // 开始监控
+        MonitoringService.RequestContext monitorContext = 
+                monitoringService.startRequest(sessionId, message != null ? message : "", clientIp);
         
         try {
+            log.info("收到聊天请求 - SessionId: {}, Message: {}", sessionId, message);
+            
             // 验证参数
-            if (request.getSessionId() == null || request.getSessionId().trim().isEmpty()) {
+            if (sessionId == null || sessionId.trim().isEmpty()) {
                 return Result.error("会话ID不能为空");
             }
-            if (request.getMessage() == null || request.getMessage().trim().isEmpty()) {
+            if (message == null || message.trim().isEmpty()) {
                 return Result.error("消息内容不能为空");
             }
             
-            String sessionId = request.getSessionId();
-            String message = request.getMessage().trim();
+            message = message.trim();
             
-            // 检查是否是问候或闲聊
-            if (isGreetingOrChat(message)) {
-                return Result.success(buildWelcomeResponse());
+            // 1. 请求限流检查
+            RateLimitService.RateLimitResult rateLimitResult = 
+                    rateLimitService.checkRateLimit(clientIp, sessionId);
+            
+            if (!rateLimitResult.isAllowed()) {
+                log.warn("请求被限流 - IP: {}, Session: {}, Reason: {}", 
+                        clientIp, sessionId, rateLimitResult.getReason());
+                monitoringService.endRequest(monitorContext, false, "Rate limited: " + rateLimitResult.getReason());
+                return Result.error(rateLimitResult.getMessage());
             }
             
-            // 使用 AI 理解用户查询
-            QueryInfo queryInfo = null;
             try {
-                queryInfo = queryUnderstandingService.understand(message);
-                log.info("AI 理解结果: {}", queryInfo);
-            } catch (Exception e) {
-                log.warn("AI 理解失败，降级到关键词搜索", e);
-            }
-            
-            // 检查是否是无效查询
-            if (queryInfo == null || !queryInfo.hasValidInfo()) {
-                // 尝试关键词搜索
-                List<CircuitDocument> results = smartSearchEngine.searchByKeyword(message);
-                if (results.isEmpty()) {
-                    return Result.success(buildNoResultResponse());
+                // 检查是否是问候或闲聊
+                if (isGreetingOrChat(message)) {
+                    Result<ChatResponseData> result = Result.success(buildWelcomeResponse());
+                    monitoringService.endRequest(monitorContext, true, null);
+                    return result;
                 }
-                return processSearchResults(sessionId, results, null, results.size());
+                
+                // 首先检查搜索结果缓存
+                List<CircuitDocument> cachedResults = cacheService.getCachedSearchResult(message);
+                if (cachedResults != null) {
+                    log.info("使用缓存的搜索结果 - Message: {}, 结果数: {}", message, cachedResults.size());
+                    monitoringService.recordCacheEvent("SEARCH", true, message);
+                    
+                    // 保存到会话（使用缓存的结果）
+                    conversationManager.saveSearchResults(sessionId, null, cachedResults, null);
+                    Result<ChatResponseData> result = processSearchResults(sessionId, cachedResults, null, cachedResults.size());
+                    monitoringService.endRequest(monitorContext, true, null);
+                    return result;
+                } else {
+                    monitoringService.recordCacheEvent("SEARCH", false, message);
+                }
+                
+                // 缓存未命中，进行查询理解（优化版）
+                QueryInfo queryInfo = null;
+                
+                // 检查AI理解结果缓存
+                QueryInfo cachedQueryInfo = cacheService.getCachedQueryInfo(message);
+                if (cachedQueryInfo != null) {
+                    queryInfo = cachedQueryInfo;
+                    log.info("使用缓存的查询理解结果: {}", queryInfo);
+                    monitoringService.recordCacheEvent("AI_QUERY", true, message);
+                } else {
+                    monitoringService.recordCacheEvent("AI_QUERY", false, message);
+                    
+                    // 2. AI请求限流检查（仅在需要AI处理时）
+                    if (needsAIProcessing(message)) {
+                        if (!rateLimitService.checkAiRequestLimit(clientIp)) {
+                            log.warn("AI请求被限流 - IP: {}", clientIp);
+                            monitoringService.recordAIEvent("AI_RATE_LIMITED", message, 0, false);
+                            
+                            // AI限流时降级到关键词搜索
+                            long searchStart = System.currentTimeMillis();
+                            List<CircuitDocument> results = smartSearchEngine.searchByKeyword(message);
+                            long searchTime = System.currentTimeMillis() - searchStart;
+                            
+                            monitoringService.recordSearchEvent("KEYWORD_FALLBACK", results.size(), searchTime);
+                            
+                            if (results.isEmpty()) {
+                                Result<ChatResponseData> result = Result.success(buildNoResultResponse());
+                                monitoringService.endRequest(monitorContext, true, null);
+                                return result;
+                            }
+                            cacheService.cacheSearchResult(message, results);
+                            Result<ChatResponseData> result = processSearchResults(sessionId, results, null, results.size());
+                            monitoringService.endRequest(monitorContext, true, null);
+                            return result;
+                        }
+                    }
+                    
+                    // 使用优化的查询理解服务（智能选择本地/AI处理）
+                    try {
+                        long aiStart = System.currentTimeMillis();
+                        queryInfo = optimizedQueryUnderstandingService.understand(message);
+                        long aiTime = System.currentTimeMillis() - aiStart;
+                        
+                        log.info("查询理解结果: {}", queryInfo);
+                        monitoringService.recordAIEvent("QUERY_UNDERSTANDING", message, aiTime, queryInfo != null);
+                    } catch (Exception e) {
+                        log.warn("查询理解失败，降级到关键词搜索", e);
+                        monitoringService.recordException("QUERY_UNDERSTANDING_FAILED", e.getMessage(), e);
+                    }
+                }
+                
+                // 检查是否是无效查询
+                if (queryInfo == null || !queryInfo.hasValidInfo()) {
+                    // 尝试关键词搜索
+                    long searchStart = System.currentTimeMillis();
+                    List<CircuitDocument> results = smartSearchEngine.searchByKeyword(message);
+                    long searchTime = System.currentTimeMillis() - searchStart;
+                    
+                    monitoringService.recordSearchEvent("KEYWORD", results.size(), searchTime);
+                    
+                    if (results.isEmpty()) {
+                        Result<ChatResponseData> result = Result.success(buildNoResultResponse());
+                        monitoringService.endRequest(monitorContext, true, null);
+                        return result;
+                    }
+                    
+                    // 缓存关键词搜索结果
+                    cacheService.cacheSearchResult(message, results);
+                    
+                    Result<ChatResponseData> result = processSearchResults(sessionId, results, null, results.size());
+                    monitoringService.endRequest(monitorContext, true, null);
+                    return result;
+                }
+                
+                // 保存原始查询
+                queryInfo.setOriginalQuery(message);
+                
+                // 执行智能搜索
+                long searchStart = System.currentTimeMillis();
+                List<CircuitDocument> results = smartSearchEngine.search(queryInfo);
+                long searchTime = System.currentTimeMillis() - searchStart;
+                
+                log.info("智能搜索 - QueryInfo: {}, 找到 {} 条结果", queryInfo, results.size());
+                monitoringService.recordSearchEvent("SMART", results.size(), searchTime);
+                
+                // 缓存搜索结果
+                cacheService.cacheSearchResult(message, results);
+                
+                // 保存到会话
+                conversationManager.saveSearchResults(sessionId, queryInfo, results, null);
+                
+                // 处理搜索结果
+                Result<ChatResponseData> result = processSearchResults(sessionId, results, queryInfo, results.size());
+                monitoringService.endRequest(monitorContext, true, null);
+                return result;
+                
+            } finally {
+                // 3. 请求完成，减少并发计数
+                rateLimitService.requestCompleted();
             }
-            
-            // 保存原始查询
-            queryInfo.setOriginalQuery(message);
-            
-            // 执行智能搜索
-            List<CircuitDocument> results = smartSearchEngine.search(queryInfo);
-            log.info("智能搜索 - QueryInfo: {}, 找到 {} 条结果", queryInfo, results.size());
-            
-            // 保存到会话
-            conversationManager.saveSearchResults(sessionId, queryInfo, results, null);
-            
-            // 处理搜索结果
-            return processSearchResults(sessionId, results, queryInfo, results.size());
             
         } catch (Exception e) {
             log.error("处理聊天请求失败", e);
+            monitoringService.recordException("CHAT_REQUEST_FAILED", e.getMessage(), e);
+            monitoringService.endRequest(monitorContext, false, e.getMessage());
             return Result.error("系统繁忙，请稍后重试");
         }
     }
@@ -539,12 +655,19 @@ public class ChatController {
      */
     private ChatResponseData buildWelcomeResponse() {
         return ChatResponseData.text(
-            "您好！我是电路图资料助手 🚗\n\n" +
-            "我可以帮您查找车辆电路图资料，请输入您要查找的内容，例如：\n" +
-            "• \"红岩杰狮保险丝\"\n" +
-            "• \"三一挖掘机仪表\"\n" +
-            "• \"康明斯2880电路图\"\n\n" +
-            "请问您需要查找什么资料？"
+            "您好！我是智能车辆电路图资料导航助手 🚗✨\n\n" +
+            "🎯 我拥有 4000+ 条电路图资料，采用智能搜索技术\n" +
+            "⚡ 简单查询秒级响应，复杂问题AI理解\n" +
+            "📋 支持历史记录，方便您随时查看\n\n" +
+            "💡 **简单搜索示例**（推荐，响应更快）：\n" +
+            "• \"东风天龙仪表\" 🚛\n" +
+            "• \"红岩杰狮保险丝\" ⚡\n" +
+            "• \"三一挖掘机4HK1\" 🏗️\n" +
+            "• \"康明斯C240针脚定义\" 🔧\n\n" +
+            "🤖 **复杂查询示例**（AI智能理解）：\n" +
+            "• \"帮我找一下天龙的仪表相关资料\"\n" +
+            "• \"需要一些关于保险丝的电路图\"\n\n" +
+            "请输入您要查找的内容，我来帮您快速定位！😊"
         );
     }
     
@@ -553,11 +676,16 @@ public class ChatController {
      */
     private ChatResponseData buildNoResultResponse() {
         return ChatResponseData.text(
-            "抱歉，未找到相关资料。\n\n建议您：\n" +
-            "1. 检查品牌或型号是否正确\n" +
-            "2. 尝试使用更通用的关键词\n" +
-            "3. 换一种表达方式\n\n" +
-            "例如：\"三一挖掘机\"、\"红岩保险丝\"、\"康明斯ECU\""
+            "😅 抱歉，没有找到相关资料呢...\n\n" +
+            "💡 **建议您试试**：\n" +
+            "🔍 检查品牌或型号是否正确\n" +
+            "🎯 使用更通用的关键词\n" +
+            "✨ 换一种表达方式\n\n" +
+            "📝 **搜索小贴士**：\n" +
+            "• 简单明确：\"三一挖掘机\" \"红岩保险丝\" 🚛\n" +
+            "• 包含型号：\"东风天龙KL\" \"康明斯C240\" 🔧\n" +
+            "• 指定部件：\"仪表针脚图\" \"ECU电路图\" ⚡\n\n" +
+            "再试一次吧！我相信能帮您找到需要的资料 💪"
         );
     }
     
@@ -647,11 +775,21 @@ public class ChatController {
     private boolean isGreetingOrChat(String message) {
         String[] greetings = {
             "你好", "您好", "hi", "hello", "嗨", "在吗", "在不在",
-            "你是谁", "你是什么", "介绍一下", "帮帮我", "帮我", "谢谢",
+            "你是谁", "你是什么", "介绍一下", "谢谢",
             "早上好", "下午好", "晚上好", "早安", "晚安"
         };
         
         String lowerMessage = message.toLowerCase().trim();
+        
+        // 先检查是否包含电路图相关词汇，如果包含则不是闲聊
+        String[] keywords = {"电路", "图", "保险", "仪表", "ECU", "线路", "天龙", "杰狮", "三一", "徐工", "卡特", "康明斯", "针脚", "定义", "资料", "找", "查", "搜索"};
+        for (String keyword : keywords) {
+            if (message.contains(keyword)) {
+                return false; // 包含专业词汇，不是闲聊
+            }
+        }
+        
+        // 检查问候语
         for (String greeting : greetings) {
             if (lowerMessage.contains(greeting)) {
                 return true;
@@ -660,16 +798,62 @@ public class ChatController {
         
         // 如果消息很短且不包含电路图相关词汇，也认为是闲聊
         if (message.length() <= 5) {
-            String[] keywords = {"电路", "图", "保险", "仪表", "ECU", "线路"};
-            for (String keyword : keywords) {
-                if (message.contains(keyword)) {
-                    return false;
-                }
-            }
             return true;
         }
         
         return false;
+    }
+    
+    /**
+     * 获取客户端IP地址
+     */
+    private String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // 处理多个IP的情况，取第一个
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip != null ? ip : "unknown";
+    }
+    
+    /**
+     * 判断查询是否需要AI处理
+     */
+    private boolean needsAIProcessing(String message) {
+        // 简单的启发式判断
+        String lowerMessage = message.toLowerCase();
+        
+        // 包含自然语言表达的可能需要AI
+        String[] aiIndicators = {
+            "帮我找", "我需要", "请给我", "能否", "可以", "有没有",
+            "关于", "相关", "一些", "几个", "什么", "怎么"
+        };
+        
+        for (String indicator : aiIndicators) {
+            if (lowerMessage.contains(indicator)) {
+                return true;
+            }
+        }
+        
+        // 长句子可能需要AI理解
+        return message.length() > 15;
     }
     
     /**
@@ -682,10 +866,141 @@ public class ChatController {
             stats.put("totalDocuments", dataLoaderService.getDocumentCount());
             stats.put("status", "运行中");
             stats.putAll(conversationManager.getStats());
+            
+            // 添加缓存统计信息
+            CacheService.CacheStats cacheStats = cacheService.getStats();
+            java.util.Map<String, Object> cacheInfo = new java.util.HashMap<>();
+            cacheInfo.put("searchCacheSize", cacheStats.getSearchCacheSize());
+            cacheInfo.put("aiCacheSize", cacheStats.getAiCacheSize());
+            cacheInfo.put("totalCacheSize", cacheStats.getTotalCacheSize());
+            cacheInfo.put("searchHitRate", String.format("%.2f%%", cacheStats.getSearchHitRate() * 100));
+            cacheInfo.put("aiHitRate", String.format("%.2f%%", cacheStats.getAiHitRate() * 100));
+            cacheInfo.put("searchHitCount", cacheStats.getSearchHitCount());
+            cacheInfo.put("searchMissCount", cacheStats.getSearchMissCount());
+            cacheInfo.put("aiHitCount", cacheStats.getAiHitCount());
+            cacheInfo.put("aiMissCount", cacheStats.getAiMissCount());
+            stats.put("cache", cacheInfo);
+            
+            // 添加查询处理统计信息
+            OptimizedQueryUnderstandingService.ProcessingStats processingStats = 
+                    optimizedQueryUnderstandingService.getStats();
+            java.util.Map<String, Object> processingInfo = new java.util.HashMap<>();
+            processingInfo.put("localProcessCount", processingStats.getLocalProcessCount());
+            processingInfo.put("aiProcessCount", processingStats.getAiProcessCount());
+            processingInfo.put("aiFailureCount", processingStats.getAiFailureCount());
+            processingInfo.put("totalProcessCount", processingStats.getTotalProcessCount());
+            processingInfo.put("localProcessRate", String.format("%.2f%%", processingStats.getLocalProcessRate() * 100));
+            processingInfo.put("aiProcessRate", String.format("%.2f%%", processingStats.getAiProcessRate() * 100));
+            processingInfo.put("aiSuccessRate", String.format("%.2f%%", processingStats.getAiSuccessRate() * 100));
+            stats.put("queryProcessing", processingInfo);
+            
+            // 添加限流统计信息
+            RateLimitService.RateLimitStats rateLimitStats = rateLimitService.getStats();
+            java.util.Map<String, Object> rateLimitInfo = new java.util.HashMap<>();
+            rateLimitInfo.put("totalRequests", rateLimitStats.getTotalRequests());
+            rateLimitInfo.put("blockedRequests", rateLimitStats.getBlockedRequests());
+            rateLimitInfo.put("aiRequestsBlocked", rateLimitStats.getAiRequestsBlocked());
+            rateLimitInfo.put("currentConcurrentRequests", rateLimitStats.getCurrentConcurrentRequests());
+            rateLimitInfo.put("activeIpRecords", rateLimitStats.getActiveIpRecords());
+            rateLimitInfo.put("activeSessionRecords", rateLimitStats.getActiveSessionRecords());
+            rateLimitInfo.put("activeAiRecords", rateLimitStats.getActiveAiRecords());
+            rateLimitInfo.put("blockedRate", String.format("%.2f%%", rateLimitStats.getBlockedRate() * 100));
+            rateLimitInfo.put("aiBlockedRate", String.format("%.2f%%", rateLimitStats.getAiBlockedRate() * 100));
+            stats.put("rateLimit", rateLimitInfo);
+            
+            // 添加监控统计信息
+            MonitoringService.SystemHealth systemHealth = monitoringService.getSystemHealth();
+            java.util.Map<String, Object> monitoringInfo = new java.util.HashMap<>();
+            monitoringInfo.put("healthStatus", systemHealth.getStatus().getDescription());
+            monitoringInfo.put("avgResponseTime", String.format("%.2f", systemHealth.getAvgResponseTime()));
+            monitoringInfo.put("errorRate", String.format("%.2f%%", systemHealth.getErrorRate() * 100));
+            monitoringInfo.put("slowQueryRate", String.format("%.2f%%", systemHealth.getSlowQueryRate() * 100));
+            monitoringInfo.put("totalRequests", systemHealth.getTotalRequests());
+            monitoringInfo.put("errorCount", systemHealth.getErrorCount());
+            monitoringInfo.put("slowQueryCount", systemHealth.getSlowQueryCount());
+            stats.put("monitoring", monitoringInfo);
+            
             return Result.success(stats);
         } catch (Exception e) {
             log.error("获取统计信息失败", e);
             return Result.error("获取统计信息失败");
+        }
+    }
+    
+    /**
+     * 获取查询处理统计接口
+     */
+    @GetMapping("/query/stats")
+    public Result<OptimizedQueryUnderstandingService.ProcessingStats> getQueryStats() {
+        try {
+            return Result.success(optimizedQueryUnderstandingService.getStats());
+        } catch (Exception e) {
+            log.error("获取查询处理统计失败", e);
+            return Result.error("获取查询处理统计失败");
+        }
+    }
+    
+    /**
+     * 重置查询处理统计接口
+     */
+    @PostMapping("/query/stats/reset")
+    public Result<String> resetQueryStats() {
+        try {
+            optimizedQueryUnderstandingService.resetStats();
+            return Result.success("查询处理统计已重置");
+        } catch (Exception e) {
+            log.error("重置查询处理统计失败", e);
+            return Result.error("重置查询处理统计失败");
+        }
+    }
+    
+    /**
+     * 测试查询复杂度分析接口
+     */
+    @PostMapping("/query/analyze")
+    public Result<Object> analyzeQuery(@RequestBody java.util.Map<String, String> request) {
+        try {
+            String query = request.get("query");
+            if (query == null || query.trim().isEmpty()) {
+                return Result.error("查询内容不能为空");
+            }
+            
+            // 这里需要注入QueryComplexityAnalyzer，暂时返回简单信息
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("query", query);
+            result.put("message", "查询复杂度分析功能需要进一步集成");
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            log.error("分析查询复杂度失败", e);
+            return Result.error("分析查询复杂度失败");
+        }
+    }
+    
+    /**
+     * 清空缓存接口
+     */
+    @PostMapping("/cache/clear")
+    public Result<String> clearCache() {
+        try {
+            cacheService.clearAllCache();
+            return Result.success("缓存已清空");
+        } catch (Exception e) {
+            log.error("清空缓存失败", e);
+            return Result.error("清空缓存失败");
+        }
+    }
+    
+    /**
+     * 获取缓存统计接口
+     */
+    @GetMapping("/cache/stats")
+    public Result<CacheService.CacheStats> getCacheStats() {
+        try {
+            return Result.success(cacheService.getStats());
+        } catch (Exception e) {
+            log.error("获取缓存统计失败", e);
+            return Result.error("获取缓存统计失败");
         }
     }
     
@@ -707,12 +1022,79 @@ public class ChatController {
     }
     
     /**
+     * 获取系统健康状态接口
+     */
+    @GetMapping("/health")
+    public Result<MonitoringService.SystemHealth> getSystemHealth() {
+        try {
+            return Result.success(monitoringService.getSystemHealth());
+        } catch (Exception e) {
+            log.error("获取系统健康状态失败", e);
+            return Result.error("获取系统健康状态失败");
+        }
+    }
+    
+    /**
+     * 获取性能趋势接口
+     */
+    @GetMapping("/performance/trend")
+    public Result<java.util.Map<String, MonitoringService.PerformanceRecord>> getPerformanceTrend() {
+        try {
+            return Result.success(monitoringService.getPerformanceTrend());
+        } catch (Exception e) {
+            log.error("获取性能趋势失败", e);
+            return Result.error("获取性能趋势失败");
+        }
+    }
+    
+    /**
+     * 重置监控统计接口
+     */
+    @PostMapping("/monitoring/stats/reset")
+    public Result<String> resetMonitoringStats() {
+        try {
+            monitoringService.resetStats();
+            return Result.success("监控统计已重置");
+        } catch (Exception e) {
+            log.error("重置监控统计失败", e);
+            return Result.error("重置监控统计失败");
+        }
+    }
+    
+    /**
+     * 获取限流统计接口
+     */
+    @GetMapping("/ratelimit/stats")
+    public Result<RateLimitService.RateLimitStats> getRateLimitStats() {
+        try {
+            return Result.success(rateLimitService.getStats());
+        } catch (Exception e) {
+            log.error("获取限流统计失败", e);
+            return Result.error("获取限流统计失败");
+        }
+    }
+    
+    /**
+     * 重置限流统计接口
+     */
+    @PostMapping("/ratelimit/stats/reset")
+    public Result<String> resetRateLimitStats() {
+        try {
+            rateLimitService.resetStats();
+            return Result.success("限流统计已重置");
+        } catch (Exception e) {
+            log.error("重置限流统计失败", e);
+            return Result.error("重置限流统计失败");
+        }
+    }
+    
+    /**
      * 测试 AI 理解接口
      */
     @PostMapping("/test/understand")
     public Result<QueryInfo> testUnderstand(@RequestBody ChatRequest request) {
         try {
-            QueryInfo queryInfo = queryUnderstandingService.understand(request.getMessage());
+            QueryInfo queryInfo = optimizedQueryUnderstandingService.understand(request.getMessage());
             return Result.success(queryInfo);
         } catch (Exception e) {
             log.error("测试 AI 理解失败", e);
