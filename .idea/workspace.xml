@@ -40,12 +40,12 @@
     &quot;assignee&quot;: &quot;boshilin123&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/boshilin123/Chat-Bot.git&quot;,
-    &quot;accountId&quot;: &quot;324738f4-7052-4f43-9ed4-bcbd498bb2b8&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "git@github.com:boshilin123/chatbot-circuit-diagram.git",
+    "accountId": "324738f4-7052-4f43-9ed4-bcbd498bb2b8"
   }
-}</component>
+}]]></component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -112,7 +112,7 @@
       <workItem from="1767233112648" duration="3670000" />
       <workItem from="1767256941062" duration="6012000" />
       <workItem from="1767487446581" duration="17011000" />
-      <workItem from="1767538368413" duration="17346000" />
+      <workItem from="1767538368413" duration="20089000" />
     </task>
     <task id="LOCAL-00001" summary="项目初始化构建">
       <option name="closed" value="true" />

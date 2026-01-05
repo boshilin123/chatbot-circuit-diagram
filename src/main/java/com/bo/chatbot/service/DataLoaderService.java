@@ -37,18 +37,61 @@ public class DataLoaderService {
         log.info("开始加载电路图资料数据...");
         
         try {
-            // 使用Spring的ClassPathResource加载文件,支持JAR内资源
-            ClassPathResource resource = new ClassPathResource("资料清单.csv");
+            // 尝试多种方式加载CSV文件
+            InputStream is = null;
             
-            if (!resource.exists()) {
-                log.error("找不到资料清单.csv文件");
-                return;
+            // 方式1: 使用Spring的ClassPathResource
+            try {
+                ClassPathResource resource = new ClassPathResource("资料清单.csv");
+                log.info("尝试方式1 - ClassPathResource: exists={}", resource.exists());
+                if (resource.exists()) {
+                    is = resource.getInputStream();
+                    log.info("方式1成功: {}", resource.getPath());
+                }
+            } catch (Exception e) {
+                log.warn("方式1失败: {}", e.getMessage());
             }
             
-            log.info("找到资料清单.csv文件,路径: {}", resource.getPath());
+            // 方式2: 使用ClassLoader
+            if (is == null) {
+                try {
+                    is = getClass().getClassLoader().getResourceAsStream("资料清单.csv");
+                    if (is != null) {
+                        log.info("方式2成功: ClassLoader.getResourceAsStream");
+                    } else {
+                        log.warn("方式2失败: 返回null");
+                    }
+                } catch (Exception e) {
+                    log.warn("方式2异常: {}", e.getMessage());
+                }
+            }
             
-            // 读取 CSV 文件
-            InputStream is = resource.getInputStream();
+            // 方式3: 使用getClass().getResourceAsStream
+            if (is == null) {
+                try {
+                    is = getClass().getResourceAsStream("/资料清单.csv");
+                    if (is != null) {
+                        log.info("方式3成功: getClass().getResourceAsStream");
+                    } else {
+                        log.warn("方式3失败: 返回null");
+                    }
+                } catch (Exception e) {
+                    log.warn("方式3异常: {}", e.getMessage());
+                }
+            }
+            
+            if (is == null) {
+                log.error("找不到资料清单.csv文件 - 所有方式都失败了");
+                // 列出classpath中的资源
+                try {
+                    log.info("尝试列出classpath根目录的资源...");
+                    ClassPathResource root = new ClassPathResource("");
+                    log.info("Classpath root exists: {}", root.exists());
+                } catch (Exception e) {
+                    log.error("无法访问classpath: {}", e.getMessage());
+                }
+                return;
+            }
             
             // 使用 OpenCSV 解析
             CSVReader reader = new CSVReader(new InputStreamReader(is, StandardCharsets.UTF_8));
