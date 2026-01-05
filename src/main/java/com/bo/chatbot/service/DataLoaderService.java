@@ -36,8 +36,8 @@ public class DataLoaderService {
         log.info("开始加载电路图资料数据...");
         
         try {
-            // 读取 CSV 文件
-            InputStream is = getClass().getResourceAsStream("/资料清单.csv");
+            // 读取 CSV 文件 - 使用ClassPathResource确保在JAR中也能正确加载
+            InputStream is = getClass().getClassLoader().getResourceAsStream("资料清单.csv");
             if (is == null) {
                 log.error("找不到资料清单.csv文件");
                 return;
