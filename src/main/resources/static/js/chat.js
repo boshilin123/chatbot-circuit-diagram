@@ -19,7 +19,6 @@ class ChatApp {
         this.historySidebar = document.getElementById('historySidebar');
         this.historyOverlay = document.getElementById('historyOverlay');
         this.closeHistoryBtn = document.getElementById('closeHistoryBtn');
-        this.historyList = document.getElementById('historyList');
         this.clearAllBtn = document.getElementById('clearAllBtn');
         
         // 会话管理相关DOM元素
@@ -31,9 +30,6 @@ class ChatApp {
         console.log('newSessionBtn:', this.newSessionBtn);
         console.log('sessionList:', this.sessionList);
         console.log('historySidebar:', this.historySidebar);
-        
-        // 历史记录数据
-        this.searchHistory = this.loadSearchHistory();
         
         // 会话管理数据
         this.sessions = this.loadSessions();
@@ -76,7 +72,6 @@ class ChatApp {
         }
         
         // 初始化显示
-        this.renderHistory();
         this.renderSessions();
         
         // 添加示例查询点击事件
@@ -98,8 +93,8 @@ class ChatApp {
                     const query = tag.textContent.trim();
                     this.inputBox.value = query;
                     this.inputBox.focus();
-                    // 可选：自动发送查询
-                    // this.sendMessage();
+                    // 自动发送查询
+                    this.sendMessage();
                 });
             });
         }, 100);
@@ -118,7 +113,7 @@ class ChatApp {
         }
         
         // 显示用户消息
-        this.appendMessage('user', message);
+        this.appendMessage('user', message, true); // 第三个参数true表示保存到会话
         
         // 清空输入框
         this.inputBox.value = '';
@@ -148,9 +143,6 @@ class ChatApp {
             if (result.code === 1) {
                 // 成功：处理业务数据
                 this.handleResponse(result.data);
-                
-                // 保存搜索历史
-                this.saveSearchHistory(message, result.data);
             } else {
                 // 失败：显示错误信息
                 this.appendMessage('bot', '❌ ' + result.msg);
@@ -181,18 +173,24 @@ class ChatApp {
             case 'text':
                 // 文本消息
                 this.appendMessage('bot', data.content);
+                // 保存完整的消息数据
+                this.saveMessageToSession('bot', data.content, 'text', null);
                 break;
                 
             case 'options':
                 // 选择题
                 this.appendMessage('bot', data.content);
                 this.appendOptions(data.options);
+                // 保存完整的消息数据（包括选项）
+                this.saveMessageToSession('bot', data.content, 'options', { options: data.options });
                 break;
                 
             case 'result':
                 // 最终结果
                 this.appendMessage('bot', data.content);
                 this.appendResult(data.document);
+                // 保存完整的消息数据（包括文档）
+                this.saveMessageToSession('bot', data.content, 'result', { document: data.document });
                 break;
                 
             default:
@@ -204,8 +202,9 @@ class ChatApp {
      * 添加文本消息
      * @param {string} role - 角色：'user' 或 'bot'
      * @param {string} content - 消息内容
+     * @param {boolean} saveToSession - 是否保存到会话（默认false，因为通常在handleResponse中已保存）
      */
-    appendMessage(role, content) {
+    appendMessage(role, content, saveToSession = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${role}`;
         
@@ -257,8 +256,10 @@ class ChatApp {
         
         this.chatArea.appendChild(messageDiv);
         
-        // 保存消息到当前会话
-        this.saveMessageToSession(role, content);
+        // 只有在明确指定时才保存到会话（用于用户消息）
+        if (saveToSession) {
+            this.saveMessageToSession(role, content, 'text', null);
+        }
         
         // 滚动到底部
         this.scrollToBottom();
@@ -266,11 +267,17 @@ class ChatApp {
     
     /**
      * 保存消息到当前会话
+     * @param {string} role - 角色
+     * @param {string} content - 内容
+     * @param {string} type - 消息类型：'text', 'options', 'result'
+     * @param {Object} data - 额外数据（选项列表或文档信息）
      */
-    saveMessageToSession(role, content) {
+    saveMessageToSession(role, content, type = 'text', data = null) {
         const message = {
             role: role,
             content: content,
+            type: type,
+            data: data,
             timestamp: new Date().toISOString()
         };
         
@@ -440,7 +447,7 @@ class ChatApp {
         this.chatArea.innerHTML = '';
         
         messages.forEach(message => {
-            this.appendMessageFromHistory(message.role, message.content);
+            this.appendMessageFromHistory(message);
         });
         
         // 重新添加示例查询点击事件
@@ -448,9 +455,13 @@ class ChatApp {
     }
     
     /**
-     * 从历史记录添加消息（不保存到会话）
+     * 从历史记录添加消息（支持完整的消息类型）
+     * @param {Object} message - 消息对象
      */
-    appendMessageFromHistory(role, content) {
+    appendMessageFromHistory(message) {
+        const { role, content, type = 'text', data = null } = message;
+        
+        // 添加文本消息
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${role}`;
         
@@ -477,7 +488,7 @@ class ChatApp {
         
         const messageTime = document.createElement('span');
         messageTime.className = 'message-time';
-        messageTime.textContent = new Date().toLocaleTimeString('zh-CN', { 
+        messageTime.textContent = new Date(message.timestamp).toLocaleTimeString('zh-CN', { 
             hour: '2-digit', 
             minute: '2-digit' 
         });
@@ -489,7 +500,7 @@ class ChatApp {
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
         
-        // 处理HTML内容（支持换行和格式化）
+        // 处理HTML内容
         if (content.includes('<br>') || content.includes('<strong>') || content.includes('<div>') || content.includes('<span>')) {
             textDiv.innerHTML = content;
         } else {
@@ -501,6 +512,90 @@ class ChatApp {
         messageDiv.appendChild(contentContainer);
         
         this.chatArea.appendChild(messageDiv);
+        
+        // 根据消息类型添加额外内容
+        if (type === 'options' && data && data.options) {
+            // 恢复选项列表
+            this.appendOptionsFromHistory(data.options);
+        } else if (type === 'result' && data && data.document) {
+            // 恢复结果文档
+            this.appendResultFromHistory(data.document);
+        }
+    }
+    
+    /**
+     * 从历史记录恢复选项列表
+     */
+    appendOptionsFromHistory(options) {
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'options-container';
+        
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        
+        options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.className = 'option-button';
+            const letter = letters[index] || (index + 1);
+            button.textContent = `${letter}. ${option.text}`;
+            
+            // 历史记录中的选项不可点击
+            button.disabled = true;
+            button.style.opacity = '0.7';
+            button.style.cursor = 'not-allowed';
+            button.style.background = '#f0f0f0';
+            button.style.color = '#999';
+            button.style.borderColor = '#ddd';
+            
+            optionsDiv.appendChild(button);
+        });
+        
+        this.chatArea.appendChild(optionsDiv);
+    }
+    
+    /**
+     * 从历史记录恢复结果文档
+     */
+    appendResultFromHistory(document) {
+        if (!document) {
+            return;
+        }
+        
+        const container = document.createElement('div');
+        container.className = 'result-container';
+        
+        // 标题
+        const title = document.createElement('div');
+        title.className = 'result-title';
+        title.textContent = '📄 查询结果';
+        container.appendChild(title);
+        
+        // ID
+        const idItem = document.createElement('div');
+        idItem.className = 'result-item';
+        idItem.innerHTML = `<span class="result-label">文档ID：</span>${document.id}`;
+        container.appendChild(idItem);
+        
+        // 层级路径
+        const pathItem = document.createElement('div');
+        pathItem.className = 'result-item';
+        pathItem.innerHTML = `<span class="result-label">层级路径：</span>${document.hierarchyPath || '未知'}`;
+        container.appendChild(pathItem);
+        
+        // 文件名称
+        const nameItem = document.createElement('div');
+        nameItem.className = 'result-item';
+        nameItem.innerHTML = `<span class="result-label">文件名称：</span>${document.fileName}`;
+        container.appendChild(nameItem);
+        
+        // 关键词（如果有）
+        if (document.keywords && document.keywords.length > 0) {
+            const keywordsItem = document.createElement('div');
+            keywordsItem.className = 'result-item';
+            keywordsItem.innerHTML = `<span class="result-label">关键词：</span>${document.keywords.join(', ')}`;
+            container.appendChild(keywordsItem);
+        }
+        
+        this.chatArea.appendChild(container);
     }
     
     /**
@@ -643,7 +738,7 @@ class ChatApp {
         button.style.color = 'white';
         
         // 显示用户选择（只显示字母）
-        this.appendMessage('user', letter);
+        this.appendMessage('user', letter, true); // 保存用户选择
         
         // 显示加载状态
         this.setLoading(true);
@@ -748,126 +843,6 @@ class ChatApp {
     }
     
     /**
-     * 加载搜索历史
-     * @returns {Array} 搜索历史数组
-     */
-    loadSearchHistory() {
-        try {
-            const history = localStorage.getItem('chatbot_search_history');
-            return history ? JSON.parse(history) : [];
-        } catch (error) {
-            console.error('加载搜索历史失败:', error);
-            return [];
-        }
-    }
-    
-    /**
-     * 保存搜索历史
-     * @param {string} query - 搜索查询
-     * @param {Object} response - 响应数据
-     */
-    saveSearchHistory(query, response) {
-        try {
-            const historyItem = {
-                id: Date.now(),
-                query: query,
-                timestamp: new Date().toLocaleString('zh-CN'),
-                type: response.type,
-                resultCount: this.getResultCount(response)
-            };
-            
-            // 添加到历史记录开头
-            this.searchHistory.unshift(historyItem);
-            
-            // 限制历史记录数量（最多保存50条）
-            if (this.searchHistory.length > 50) {
-                this.searchHistory = this.searchHistory.slice(0, 50);
-            }
-            
-            // 保存到localStorage
-            localStorage.setItem('chatbot_search_history', JSON.stringify(this.searchHistory));
-            
-            // 更新历史记录显示
-            this.renderHistory();
-            
-        } catch (error) {
-            console.error('保存搜索历史失败:', error);
-        }
-    }
-    
-    /**
-     * 获取结果数量描述
-     * @param {Object} response - 响应数据
-     * @returns {string} 结果描述
-     */
-    getResultCount(response) {
-        switch (response.type) {
-            case 'result':
-                return '找到1条结果';
-            case 'options':
-                if (response.options) {
-                    const docCount = response.options.filter(opt => !opt.value.includes('next_page')).length;
-                    return `找到${docCount}条结果`;
-                }
-                return '找到多条结果';
-            case 'text':
-                return '文本回复';
-            default:
-                return '未知结果';
-        }
-    }
-    
-    /**
-     * 渲染历史记录
-     */
-    renderHistory() {
-        if (this.searchHistory.length === 0) {
-            this.historyList.innerHTML = `
-                <div class="history-empty">
-                    <div class="empty-icon">📝</div>
-                    <p>暂无搜索历史</p>
-                    <small>开始搜索后，历史记录会显示在这里</small>
-                </div>
-            `;
-            this.clearAllBtn.disabled = true;
-            return;
-        }
-        
-        this.clearAllBtn.disabled = false;
-        
-        const historyHtml = this.searchHistory.map(item => `
-            <div class="history-item" data-query="${item.query}">
-                <div class="history-item-query">${item.query}</div>
-                <div class="history-item-time">${item.timestamp}</div>
-                <div class="history-item-result">${item.resultCount}</div>
-            </div>
-        `).join('');
-        
-        this.historyList.innerHTML = historyHtml;
-        
-        // 添加点击事件
-        this.historyList.querySelectorAll('.history-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const query = item.dataset.query;
-                this.useHistoryQuery(query);
-            });
-        });
-    }
-    
-    /**
-     * 使用历史查询
-     * @param {string} query - 查询内容
-     */
-    useHistoryQuery(query) {
-        this.inputBox.value = query;
-        this.closeHistory();
-        this.inputBox.focus();
-        
-        // 可选：自动发送查询
-        // this.sendMessage();
-    }
-    
-    /**
      * 打开历史记录侧边栏
      */
     openHistory() {
@@ -935,24 +910,21 @@ class ChatApp {
     }
     
     /**
-     * 清空所有数据（搜索历史和会话记录）
+     * 清空所有会话记录
      */
     clearAllData() {
-        if (confirm('确定要清空所有搜索历史和会话记录吗？')) {
-            // 清空搜索历史
-            this.searchHistory = [];
-            localStorage.removeItem('chatbot_search_history');
-            
+        if (confirm('确定要清空所有会话记录吗？')) {
             // 清空会话记录
             this.sessions = [];
             localStorage.removeItem('chatbot_sessions');
             
             // 重新渲染
-            this.renderHistory();
             this.renderSessions();
             
             // 创建新会话
             this.createNewSession();
+            
+            console.log('所有会话记录已清空');
         }
     }
     

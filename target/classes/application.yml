@@ -4,13 +4,13 @@ spring:
 
 # 服务器配置
 server:
-  port: 8080
+  port: ${PORT:8080}  # Railway会自动设置PORT环境变量
 
 # DeepSeek API 配置
 deepseek:
   api:
     key: sk-3d715c01cbb74880a3f1fd667a6b82a1
-    url: https://api.deepseek.com/chat/completions
+    url: https://api.deepseek.com/v1/chat/completions
 
 # 日志配置
 logging:

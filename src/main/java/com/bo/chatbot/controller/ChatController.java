@@ -2,13 +2,16 @@ package com.bo.chatbot.controller;
 
 import com.bo.chatbot.model.*;
 import com.bo.chatbot.service.*;
+import com.bo.chatbot.config.AIConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +39,12 @@ public class ChatController {
     
     @Autowired
     private ResultCategorizer resultCategorizer;
+    
+    @Autowired
+    private AIResultCategorizer aiResultCategorizer;
+    
+    @Autowired
+    private AIConfig aiConfig;
     
     @Autowired
     private ConversationManager conversationManager;
@@ -102,9 +111,13 @@ public class ChatController {
                     log.info("使用缓存的搜索结果 - Message: {}, 结果数: {}", message, cachedResults.size());
                     monitoringService.recordCacheEvent("SEARCH", true, message);
                     
+                    // 即使使用缓存结果，也要尝试AI分类（如果结果数量较多）
+                    QueryInfo cachedQueryInfo = new QueryInfo();
+                    cachedQueryInfo.setOriginalQuery(message); // 设置原始查询用于AI分类
+                    
                     // 保存到会话（使用缓存的结果）
-                    conversationManager.saveSearchResults(sessionId, null, cachedResults, null);
-                    Result<ChatResponseData> result = processSearchResults(sessionId, cachedResults, null, cachedResults.size());
+                    conversationManager.saveSearchResults(sessionId, cachedQueryInfo, cachedResults, null);
+                    Result<ChatResponseData> result = processSearchResults(sessionId, cachedResults, cachedQueryInfo, cachedResults.size());
                     monitoringService.endRequest(monitorContext, true, null);
                     return result;
                 } else {
@@ -250,8 +263,64 @@ public class ChatController {
         
         // 获取会话状态，传递已使用的分类类型
         ConversationManager.ConversationState state = conversationManager.getOrCreateSession(sessionId);
+        
+        // 优先尝试AI分类（仅在AI可用时）
+        AIResultCategorizer.AICategoryResult aiCategory = null;
+        if (aiConfig.isAIEnabled()) {
+            try {
+                if (queryInfo != null && queryInfo.getOriginalQuery() != null) {
+                    String originalQuery = queryInfo.getOriginalQuery();
+                    log.info("尝试使用AI分类 - 查询: '{}'", originalQuery);
+                    
+                    // 先检查缓存
+                    aiCategory = cacheService.getCachedAICategoryResult(originalQuery);
+                    if (aiCategory != null) {
+                        log.info("使用缓存的AI分类结果 - 分类数: {}", aiCategory.getOptions().size());
+                    } else {
+                        // 缓存未命中，调用AI分类
+                        aiCategory = aiResultCategorizer.categorizeWithAI(results, originalQuery);
+                        
+                        // 缓存AI分类结果
+                        if (aiCategory != null && aiCategory.getOptions().size() >= 2) {
+                            cacheService.cacheAICategoryResult(originalQuery, aiCategory);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("AI分类失败，降级到传统分类: {}", e.getMessage());
+            }
+        } else {
+            log.debug("AI功能未启用，跳过AI分类");
+        }
+        
+        if (aiCategory != null && aiCategory.getOptions().size() >= 2) {
+            // 使用AI分类结果
+            log.info("✅ AI分类成功 - 生成 {} 个选项", aiCategory.getOptions().size());
+            for (int i = 0; i < aiCategory.getOptions().size(); i++) {
+                log.info("   {}. {}", i + 1, aiCategory.getOptions().get(i).getText());
+            }
+            
+            // 保存AI分类结果到会话
+            state.setAiCategoryMap(aiCategory.getCategoryMap());
+            state.setLastCategoryType("ai_category");
+            
+            ChatResponseData data = ChatResponseData.options(aiCategory.getPrompt(), aiCategory.getOptions());
+            return Result.success(data);
+        } else {
+            if (aiConfig.isAIEnabled()) {
+                log.warn("❌ AI分类未生成有效选项，降级到传统分类");
+            }
+        }
+        
+        // 降级到传统分类
+        // 获取原始查询用于智能分类
+        String originalQuery = null;
+        if (queryInfo != null && queryInfo.getOriginalQuery() != null) {
+            originalQuery = queryInfo.getOriginalQuery();
+        }
+        
         ResultCategorizer.CategoryResult category = resultCategorizer.categorize(
-                results, totalCount, state.getUsedCategoryTypes());
+                results, totalCount, state.getUsedCategoryTypes(), originalQuery);
         
         if (category != null && category.getOptions().size() >= 2) {
             // 可以分类，返回分类选项
@@ -295,7 +364,13 @@ public class ChatController {
                 return handleNextPageRequest(sessionId);
             }
             
-            // 检查是否是分类选择
+            // 检查是否是AI分类选择（必须在传统分类检查之前）
+            if (optionValue.startsWith("ai_category:")) {
+                log.info("识别为AI分类选择: {}", optionValue);
+                return handleCategorySelection(sessionId, optionValue);
+            }
+            
+            // 检查是否是传统分类选择
             if (conversationManager.isCategorySelection(optionValue)) {
                 return handleCategorySelection(sessionId, optionValue);
             }
@@ -327,74 +402,90 @@ public class ChatController {
         List<CircuitDocument> filtered = null;
         String actualCategoryType = null;
         
-        // 优先在当前结果中筛选
-        if (state != null) {
-            // 首先尝试使用当前分类类型（最准确）
-            String currentCategoryType = state.getLastCategoryType();
-            if (currentCategoryType != null) {
-                List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
-                        lastResults, currentCategoryType, categoryValue);
-                
-                if (!tryFiltered.isEmpty()) {
-                    filtered = tryFiltered;
-                    actualCategoryType = currentCategoryType;
-                    log.info("当前结果筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
-                            currentCategoryType, categoryValue, lastResults.size(), filtered.size());
-                }
-            }
+        // 检查是否是AI分类
+        if (state != null && "ai_category".equals(state.getLastCategoryType()) && 
+            state.getAiCategoryMap() != null) {
             
-            // 如果当前分类类型没有结果，再尝试其他类型
-            if (filtered == null || filtered.isEmpty()) {
-                // 动态判断分类类型：尝试所有可能的分类类型
-                String[] possibleTypes = {"brand", "model", "component", "ecu"};
-                
-                for (String tryType : possibleTypes) {
-                    // 跳过已经尝试过的当前分类类型
-                    if (tryType.equals(currentCategoryType)) {
-                        continue;
-                    }
-                    
+            // 使用AI分类结果
+            filtered = aiResultCategorizer.filterByAICategory(lastResults, categoryValue, state.getAiCategoryMap());
+            actualCategoryType = "ai_category";
+            
+            log.info("AI分类筛选 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                    actualCategoryType, categoryValue, lastResults.size(), 
+                    filtered != null ? filtered.size() : 0);
+        }
+        
+        // 如果AI分类没有结果，降级到传统分类
+        if (filtered == null || filtered.isEmpty()) {
+            // 优先在当前结果中筛选
+            if (state != null) {
+                // 首先尝试使用当前分类类型（最准确）
+                String currentCategoryType = state.getLastCategoryType();
+                if (currentCategoryType != null && !"ai_category".equals(currentCategoryType)) {
                     List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
-                            lastResults, tryType, categoryValue);
+                            lastResults, currentCategoryType, categoryValue);
                     
                     if (!tryFiltered.isEmpty()) {
                         filtered = tryFiltered;
-                        actualCategoryType = tryType;
-                        log.info("备用类型筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
-                                tryType, categoryValue, lastResults.size(), filtered.size());
-                        break;
+                        actualCategoryType = currentCategoryType;
+                        log.info("当前结果筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                                currentCategoryType, categoryValue, lastResults.size(), filtered.size());
                     }
                 }
-            }
-            
-            // 如果当前结果中没有找到，尝试智能回退
-            if ((filtered == null || filtered.isEmpty()) && state.getNarrowingStep() > 0) {
-                log.info("当前结果中未找到匹配项，尝试智能回退 - 值: {}, 当前步骤: {}", 
-                        categoryValue, state.getNarrowingStep());
                 
-                // 尝试在原始搜索结果中查找该选项
-                QueryInfo originalQuery = conversationManager.getLastQuery(sessionId);
-                if (originalQuery != null) {
-                    // 重新执行搜索获取原始结果
-                    List<CircuitDocument> originalResults = smartSearchEngine.search(originalQuery);
+                // 如果当前分类类型没有结果，再尝试其他类型
+                if (filtered == null || filtered.isEmpty()) {
+                    // 动态判断分类类型：尝试所有可能的分类类型
+                    String[] possibleTypes = {"brand", "model", "component", "ecu"};
                     
-                    // 在原始结果中尝试筛选
-                    String[] allPossibleTypes = {"brand", "model", "component", "ecu"};
-                    for (String tryType : allPossibleTypes) {
+                    for (String tryType : possibleTypes) {
+                        // 跳过已经尝试过的当前分类类型
+                        if (tryType.equals(currentCategoryType)) {
+                            continue;
+                        }
+                        
                         List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
-                                originalResults, tryType, categoryValue);
+                                lastResults, tryType, categoryValue);
                         
                         if (!tryFiltered.isEmpty()) {
                             filtered = tryFiltered;
                             actualCategoryType = tryType;
-                            log.info("原始结果筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
-                                    tryType, categoryValue, originalResults.size(), filtered.size());
-                            
-                            // 重置会话状态到初始状态
-                            state.setLastResults(originalResults);
-                            state.setNarrowingStep(0);
-                            state.resetUsedCategoryTypes();
+                            log.info("备用类型筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                                    tryType, categoryValue, lastResults.size(), filtered.size());
                             break;
+                        }
+                    }
+                }
+                
+                // 如果当前结果中没有找到，尝试智能回退
+                if ((filtered == null || filtered.isEmpty()) && state.getNarrowingStep() > 0) {
+                    log.info("当前结果中未找到匹配项，尝试智能回退 - 值: {}, 当前步骤: {}", 
+                            categoryValue, state.getNarrowingStep());
+                    
+                    // 尝试在原始搜索结果中查找该选项
+                    QueryInfo originalQuery = conversationManager.getLastQuery(sessionId);
+                    if (originalQuery != null) {
+                        // 重新执行搜索获取原始结果
+                        List<CircuitDocument> originalResults = smartSearchEngine.search(originalQuery);
+                        
+                        // 在原始结果中尝试筛选
+                        String[] allPossibleTypes = {"brand", "model", "component", "ecu"};
+                        for (String tryType : allPossibleTypes) {
+                            List<CircuitDocument> tryFiltered = resultCategorizer.filterByCategory(
+                                    originalResults, tryType, categoryValue);
+                            
+                            if (!tryFiltered.isEmpty()) {
+                                filtered = tryFiltered;
+                                actualCategoryType = tryType;
+                                log.info("原始结果筛选成功 - 类型: {}, 值: {}, 筛选前: {}, 筛选后: {}", 
+                                        tryType, categoryValue, originalResults.size(), filtered.size());
+                                
+                                // 重置会话状态到初始状态
+                                state.setLastResults(originalResults);
+                                state.setNarrowingStep(0);
+                                state.resetUsedCategoryTypes();
+                                break;
+                            }
                         }
                     }
                 }
@@ -438,6 +529,7 @@ public class ChatController {
     
     /**
      * 处理筛选后的结果（带确认语），严格按数量分流
+     * 支持AI多次分类以获得精准结果
      */
     private Result<ChatResponseData> processFilteredResults(String sessionId, 
             List<CircuitDocument> results, String selectedCategory) {
@@ -468,9 +560,81 @@ public class ChatController {
             return Result.success(buildOptionsResponseWithConfirm(results, results.size(), confirmText));
         }
         
-        // >5条：必须继续分类引导
+        // >5条：检查是否是AI分类的结果，如果是则继续AI分类
+        boolean isAICategory = state != null && "ai_category".equals(state.getLastCategoryType());
+        
+        if (isAICategory && aiConfig.isAIEnabled()) {
+            // AI分类后结果仍>5条，继续使用AI进行二次分类
+            log.info("AI分类筛选后仍有 {} 条结果，尝试AI二次分类", results.size());
+            
+            try {
+                // 获取原始查询
+                String originalQuery = null;
+                if (state != null) {
+                    QueryInfo lastQuery = conversationManager.getLastQuery(sessionId);
+                    if (lastQuery != null && lastQuery.getOriginalQuery() != null) {
+                        originalQuery = lastQuery.getOriginalQuery();
+                    }
+                }
+                
+                if (originalQuery != null) {
+                    // 构建二次分类的查询提示（加上已选择的分类信息）
+                    String refinedQuery = originalQuery + " " + selectedCategory;
+                    
+                    // 先检查缓存
+                    AIResultCategorizer.AICategoryResult aiCategory = cacheService.getCachedAICategoryResult(refinedQuery);
+                    
+                    if (aiCategory == null) {
+                        // 缓存未命中，调用AI进行二次分类
+                        aiCategory = aiResultCategorizer.categorizeWithAI(results, refinedQuery);
+                        
+                        // 缓存AI分类结果
+                        if (aiCategory != null && aiCategory.getOptions().size() >= 2) {
+                            cacheService.cacheAICategoryResult(refinedQuery, aiCategory);
+                        }
+                    }
+                    
+                    if (aiCategory != null && aiCategory.getOptions().size() >= 2) {
+                        // AI二次分类成功
+                        log.info("✅ AI二次分类成功 - 生成 {} 个选项", aiCategory.getOptions().size());
+                        
+                        // 保存AI分类结果到会话
+                        state.setAiCategoryMap(aiCategory.getCategoryMap());
+                        state.setLastCategoryType("ai_category");
+                        
+                        String prompt = confirmText + "\n\n" + aiCategory.getPrompt();
+                        ChatResponseData data = ChatResponseData.options(prompt, aiCategory.getOptions());
+                        return Result.success(data);
+                    } else {
+                        log.warn("AI二次分类未生成有效选项，使用分页显示");
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("AI二次分类失败: {}", e.getMessage());
+            }
+            
+            // AI二次分类失败，使用分页显示
+            if (state != null) {
+                state.setAllResults(new ArrayList<>(results));
+                state.setCurrentPage(0);
+            }
+            
+            return buildPaginatedResponseWithConfirm(sessionId, results, confirmText);
+        }
+        
+        // 传统分类：继续分类引导
+        
+        // 获取原始查询用于智能分类
+        String originalQuery = null;
+        if (state != null) {
+            QueryInfo lastQuery = conversationManager.getLastQuery(sessionId);
+            if (lastQuery != null && lastQuery.getOriginalQuery() != null) {
+                originalQuery = lastQuery.getOriginalQuery();
+            }
+        }
+        
         ResultCategorizer.CategoryResult category = resultCategorizer.categorize(
-                results, results.size(), state != null ? state.getUsedCategoryTypes() : new HashSet<>());
+                results, results.size(), state != null ? state.getUsedCategoryTypes() : new HashSet<>(), originalQuery);
         
         if (category != null && category.getOptions().size() >= 2) {
             // 可以继续分类
@@ -655,18 +819,14 @@ public class ChatController {
      */
     private ChatResponseData buildWelcomeResponse() {
         return ChatResponseData.text(
-            "您好！我是智能车辆电路图资料导航助手 🚗✨\n\n" +
-            "🎯 我拥有 4000+ 条电路图资料，采用智能搜索技术\n" +
+            "您好！我是智能车辆电路图资料导航助手 ✨\n\n" +
+            "🎯 拥有 4000+ 条电路图资料，采用智能搜索技术\n" +
             "⚡ 简单查询秒级响应，复杂问题AI理解\n" +
-            "📋 支持历史记录，方便您随时查看\n\n" +
-            "💡 **简单搜索示例**（推荐，响应更快）：\n" +
-            "• \"东风天龙仪表\" 🚛\n" +
-            "• \"红岩杰狮保险丝\" ⚡\n" +
-            "• \"三一挖掘机4HK1\" 🏗️\n" +
-            "• \"康明斯C240针脚定义\" 🔧\n\n" +
-            "🤖 **复杂查询示例**（AI智能理解）：\n" +
-            "• \"帮我找一下天龙的仪表相关资料\"\n" +
-            "• \"需要一些关于保险丝的电路图\"\n\n" +
+            "📋 支持历史记录，方便随时查看\n\n" +
+            "💡 推荐搜索示例：\n" +
+            "三菱4K22\n" +
+            "红岩杰狮保险丝\n" +
+            "东风天龙仪表\n\n" +
             "请输入您要查找的内容，我来帮您快速定位！😊"
         );
     }
@@ -1089,15 +1249,58 @@ public class ChatController {
     }
     
     /**
-     * 测试 AI 理解接口
+     * 测试DeepSeek API连接
      */
-    @PostMapping("/test/understand")
-    public Result<QueryInfo> testUnderstand(@RequestBody ChatRequest request) {
+    @GetMapping("/test/deepseek-api")
+    public Result<String> testDeepSeekAPI() {
         try {
-            QueryInfo queryInfo = optimizedQueryUnderstandingService.understand(request.getMessage());
-            return Result.success(queryInfo);
+            String result = aiResultCategorizer.testAPIConnection();
+            return Result.success(result);
         } catch (Exception e) {
-            log.error("测试 AI 理解失败", e);
+            log.error("测试DeepSeek API失败", e);
+            return Result.error("测试失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 测试 AI 分类接口
+     */
+    @PostMapping("/test/ai-categorize")
+    public Result<Object> testAICategorize(@RequestBody Map<String, String> request) {
+        try {
+            String query = request.get("query");
+            if (query == null || query.trim().isEmpty()) {
+                return Result.error("查询内容不能为空");
+            }
+            
+            // 执行搜索获取结果
+            List<CircuitDocument> results = smartSearchEngine.searchByKeyword(query);
+            
+            if (results.isEmpty()) {
+                return Result.error("没有找到相关资料");
+            }
+            
+            // 调用AI分类
+            AIResultCategorizer.AICategoryResult aiResult = aiResultCategorizer.categorizeWithAI(results, query);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("query", query);
+            response.put("totalResults", results.size());
+            
+            if (aiResult != null) {
+                response.put("aiCategorizeSuccess", true);
+                response.put("prompt", aiResult.getPrompt());
+                response.put("options", aiResult.getOptions());
+                response.put("categoryCount", aiResult.getOptions().size());
+            } else {
+                response.put("aiCategorizeSuccess", false);
+                response.put("message", "AI分类失败");
+            }
+            
+            return Result.success(response);
+            
+        } catch (Exception e) {
+            log.error("测试AI分类失败", e);
             return Result.error("测试失败: " + e.getMessage());
         }
     }

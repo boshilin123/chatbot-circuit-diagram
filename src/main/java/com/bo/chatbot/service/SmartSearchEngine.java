@@ -25,8 +25,9 @@ public class SmartSearchEngine {
     
     /**
      * 默认返回结果数量
+     * 扩大到100条，为AI分类提供更大的范围
      */
-    private static final int DEFAULT_TOP_K = 20;
+    private static final int DEFAULT_TOP_K = 100;
     
     /**
      * 最小相似度阈值（低于此分数的结果会被过滤）

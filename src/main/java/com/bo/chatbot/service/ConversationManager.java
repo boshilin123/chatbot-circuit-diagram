@@ -49,6 +49,9 @@ public class ConversationManager {
         private int currentPage;                        // 当前页码（从0开始）
         private int pageSize;                          // 每页大小
         
+        // 新增：AI分类相关字段
+        private Map<String, List<CircuitDocument>> aiCategoryMap; // AI分类结果映射
+        
         public ConversationState(String sessionId) {
             this.sessionId = sessionId;
             this.lastActiveTime = LocalDateTime.now();
@@ -408,15 +411,19 @@ public class ConversationManager {
      * 检查是否是分类选择
      */
     public boolean isCategorySelection(String message) {
-        return message != null && message.startsWith("category:");
+        return message != null && (message.startsWith("category:") || message.startsWith("ai_category:"));
     }
     
     /**
      * 解析分类选择值
      */
     public String parseCategoryValue(String message) {
-        if (message != null && message.startsWith("category:")) {
-            return message.substring("category:".length());
+        if (message != null) {
+            if (message.startsWith("ai_category:")) {
+                return message.substring("ai_category:".length());
+            } else if (message.startsWith("category:")) {
+                return message.substring("category:".length());
+            }
         }
         return null;
     }

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>请求限流测试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .control-panel {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        .status.running {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .result-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .result-blocked {
+            background: #f8d7da;
+            color: #721c24;
+            font-weight: 600;
+        }
+        .result-error {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .stats {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            border: 2px solid #3b82f6;
+        }
+        .stats h3 {
+            margin-top: 0;
+            color: #1d4ed8;
+        }
+        .stat-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            font-weight: 600;
+            color: #555;
+            display: inline-block;
+            width: 200px;
+        }
+        .stat-value {
+            color: #3b82f6;
+            font-weight: 700;
+        }
+        .progress {
+            margin: 10px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚦 请求限流测试工具</h1>
+        
+        <div class="control-panel">
+            <div class="control-group">
+                <label>请求总数：</label>
+                <input type="number" id="totalRequests" value="35" min="1" max="100">
+                <small>（建议35次，超过30次限流阈值）</small>
+            </div>
+            
+            <div class="control-group">
+                <label>请求间隔（毫秒）：</label>
+                <input type="number" id="requestDelay" value="100" min="0" max="5000">
+                <small>（0=立即发送，100=每100ms发送一次）</small>
+            </div>
+            
+            <div class="control-group">
+                <button class="btn-primary" onclick="startTest()">🚀 开始测试</button>
+                <button class="btn-secondary" onclick="checkStats()">📊 查看统计</button>
+                <button class="btn-danger" onclick="clearResults()">🗑️ 清空结果</button>
+            </div>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="progress" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+        
+        <div class="results" id="results"></div>
+        
+        <div class="stats" id="statsContainer" style="display: none;">
+            <h3>📈 限流统计信息</h3>
+            <div id="statsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let successCount = 0;
+        let blockedCount = 0;
+        let errorCount = 0;
+
+        async function startTest() {
+            if (isRunning) {
+                alert('测试正在进行中，请等待完成！');
+                return;
+            }
+
+            const totalRequests = parseInt(document.getElementById('totalRequests').value);
+            const requestDelay = parseInt(document.getElementById('requestDelay').value);
+
+            if (totalRequests < 1 || totalRequests > 100) {
+                alert('请求总数必须在1-100之间！');
+                return;
+            }
+
+            // 重置计数器
+            successCount = 0;
+            blockedCount = 0;
+            errorCount = 0;
+            isRunning = true;
+
+            // 清空结果
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('progressContainer').style.display = 'block';
+            
+            showStatus(`🚀 开始测试：将发送 ${totalRequests} 次请求，间隔 ${requestDelay}ms`, 'running');
+
+            // 发送请求
+            for (let i = 1; i <= totalRequests; i++) {
+                await sendRequest(i, totalRequests);
+                
+                // 更新进度
+                const progress = Math.round((i / totalRequests) * 100);
+                updateProgress(progress);
+                
+                // 延迟
+                if (i < totalRequests && requestDelay > 0) {
+                    await sleep(requestDelay);
+                }
+            }
+
+            isRunning = false;
+            showStatus(`✅ 测试完成！成功: ${successCount}, 被限流: ${blockedCount}, 错误: ${errorCount}`, 'success');
+            
+            // 自动显示统计信息
+            setTimeout(() => checkStats(), 1000);
+        }
+
+        async function sendRequest(index, total) {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: 'test_session_' + Date.now(),
+                        message: '测试请求 ' + index
+                    })
+                });
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result-item';
+
+                if (response.status === 429) {
+                    // 被限流
+                    blockedCount++;
+                    resultDiv.className += ' result-blocked';
+                    resultDiv.textContent = `❌ 请求 ${index}/${total}: 被限流 (HTTP 429) - 超过每分钟30次限制`;
+                } else if (response.ok) {
+                    // 成功
+                    successCount++;
+                    resultDiv.className += ' result-success';
+                    resultDiv.textContent = `✅ 请求 ${index}/${total}: 成功 (HTTP ${response.status})`;
+                } else {
+                    // 其他错误
+                    errorCount++;
+                    resultDiv.className += ' result-error';
+                    resultDiv.textContent = `⚠️ 请求 ${index}/${total}: 错误 (HTTP ${response.status})`;
+                }
+
+                resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+                
+                // 保持最多显示50条结果
+                while (resultsDiv.children.length > 50) {
+                    resultsDiv.removeChild(resultsDiv.lastChild);
+                }
+
+            } catch (error) {
+                errorCount++;
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result-item result-error';
+                resultDiv.textContent = `⚠️ 请求 ${index}/${total}: 网络错误 - ${error.message}`;
+                resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+            }
+        }
+
+        async function checkStats() {
+            try {
+                const response = await fetch('/api/ratelimit/stats');
+                const data = await response.json();
+
+                if (data.code === 1) {
+                    const stats = data.data;
+                    const statsContainer = document.getElementById('statsContainer');
+                    const statsContent = document.getElementById('statsContent');
+
+                    statsContent.innerHTML = `
+                        <div class="stat-item">
+                            <span class="stat-label">总请求数：</span>
+                            <span class="stat-value">${stats.totalRequests || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">被阻止的请求数：</span>
+                            <span class="stat-value">${stats.blockedRequests || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">当前并发请求数：</span>
+                            <span class="stat-value">${stats.currentConcurrentRequests || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">最大并发请求数：</span>
+                            <span class="stat-value">${stats.maxConcurrentRequests || 50}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">活跃IP数量：</span>
+                            <span class="stat-value">${stats.activeIpCount || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">活跃会话数量：</span>
+                            <span class="stat-value">${stats.activeSessionCount || 0}</span>
+                        </div>
+                    `;
+
+                    statsContainer.style.display = 'block';
+                } else {
+                    alert('获取统计信息失败：' + data.msg);
+                }
+            } catch (error) {
+                alert('获取统计信息失败：' + error.message);
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('statsContainer').style.display = 'none';
+            successCount = 0;
+            blockedCount = 0;
+            errorCount = 0;
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+        }
+
+        function updateProgress(percent) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = percent + '%';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 页面加载时显示说明
+        window.onload = function() {
+            showStatus('💡 提示：点击"开始测试"按钮发送多次请求，测试限流功能。默认配置：每IP每分钟最多30次请求。', 'success');
+        };
+    </script>
+</body>
+</html>

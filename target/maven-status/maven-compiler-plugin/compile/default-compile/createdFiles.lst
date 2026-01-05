@@ -11,8 +11,10 @@ com\bo\chatbot\model\QueryInfo.class
 com\bo\chatbot\service\SmartSearchEngine.class
 com\bo\chatbot\service\OptimizedQueryUnderstandingService$ProcessingStats.class
 com\bo\chatbot\service\SimilarityScorer$ScoreDetail.class
+com\bo\chatbot\config\AIConfig.class
 com\bo\chatbot\service\RateLimitService$RateLimitResult.class
 com\bo\chatbot\service\OptimizedQueryUnderstandingService.class
+com\bo\chatbot\service\AIResultCategorizer.class
 com\bo\chatbot\service\RateLimitService.class
 com\bo\chatbot\service\MonitoringService$PerformanceRecord.class
 com\bo\chatbot\service\ConversationManager$StateSnapshot.class
@@ -29,6 +31,7 @@ com\bo\chatbot\model\SelectRequest.class
 com\bo\chatbot\service\SimilarityScorer.class
 com\bo\chatbot\service\DeepSeekService$ChatResponse.class
 com\bo\chatbot\controller\ChatController.class
+com\bo\chatbot\config\RestTemplateConfig.class
 com\bo\chatbot\controller\HomeController.class
 com\bo\chatbot\service\DataLoaderService.class
 com\bo\chatbot\service\RateLimitService$RateLimitRecord.class
@@ -38,12 +41,14 @@ com\bo\chatbot\service\DeepSeekService$ChatResponse$Choice.class
 com\bo\chatbot\service\KeywordExtractor.class
 com\bo\chatbot\service\ResultCategorizer$CategoryResult.class
 com\bo\chatbot\service\SearchIndex.class
+com\bo\chatbot\service\AIResultCategorizer$AICategoryResult.class
 com\bo\chatbot\service\CacheService$CacheEntry.class
 com\bo\chatbot\service\DeepSeekService.class
 com\bo\chatbot\model\CircuitDocument.class
 com\bo\chatbot\service\QueryComplexityAnalyzer.class
 com\bo\chatbot\model\ChatRequest.class
 com\bo\chatbot\service\MonitoringService$RequestContext.class
+com\bo\chatbot\service\AIResultCategorizer$CategoryInfo.class
 com\bo\chatbot\service\QueryUnderstandingService.class
 com\bo\chatbot\service\ResultCategorizer.class
 com\bo\chatbot\service\MonitoringService.class

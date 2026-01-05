@@ -63,14 +63,176 @@ public class ResultCategorizer {
     
     /**
      * 分析结果并生成分类选项（带已使用分类类型）
+     * 新增：基于用户查询的智能分类
      */
     public CategoryResult categorize(List<CircuitDocument> results, int totalCount, Set<String> usedTypes) {
+        return categorize(results, totalCount, usedTypes, null);
+    }
+    
+    /**
+     * 基于用户查询的智能分类（新方法）
+     */
+    public CategoryResult categorize(List<CircuitDocument> results, int totalCount, 
+                                   Set<String> usedTypes, String originalQuery) {
         if (results == null || results.size() <= 5) {
             return null;
         }
         
-        log.debug("开始分类 - 结果数: {}, 已使用分类: {}", results.size(), usedTypes);
+        log.debug("开始智能分类 - 结果数: {}, 已使用分类: {}, 原始查询: {}", 
+                results.size(), usedTypes, originalQuery);
         
+        // 如果有原始查询，优先使用查询相关的智能分类
+        if (originalQuery != null && !originalQuery.trim().isEmpty()) {
+            CategoryResult smartResult = smartCategorizeByQuery(results, totalCount, usedTypes, originalQuery);
+            if (smartResult != null) {
+                log.debug("使用智能分类，选项数: {}", smartResult.getOptions().size());
+                return smartResult;
+            }
+        }
+        
+        // 降级到传统分类方法
+        return traditionalCategorize(results, totalCount, usedTypes);
+    }
+    
+    /**
+     * 基于用户查询的智能分类
+     */
+    private CategoryResult smartCategorizeByQuery(List<CircuitDocument> results, int totalCount, 
+                                                Set<String> usedTypes, String originalQuery) {
+        String query = originalQuery.toLowerCase().trim();
+        
+        // 检测查询中的关键信息
+        boolean hasEcuQuery = query.contains("c81") || query.contains("edc17") || query.contains("cm2880") || 
+                             query.contains("ecu") || query.contains("电脑板");
+        boolean hasCircuitQuery = query.contains("电路图") || query.contains("线路图") || query.contains("针脚");
+        
+        // 针对C81等ECU查询的智能分类
+        if (hasEcuQuery && !usedTypes.contains("ecu_smart")) {
+            CategoryResult ecuSmart = smartCategorizeForEcu(results, totalCount, query);
+            if (ecuSmart != null) {
+                return ecuSmart;
+            }
+        }
+        
+        // 针对电路图查询的智能分类
+        if (hasCircuitQuery && !usedTypes.contains("circuit_smart")) {
+            CategoryResult circuitSmart = smartCategorizeForCircuit(results, totalCount, query);
+            if (circuitSmart != null) {
+                return circuitSmart;
+            }
+        }
+        
+        // 按应用场景分类（工程机械 vs 商用车）
+        if (!usedTypes.contains("application")) {
+            CategoryResult appResult = categorizeByApplication(results, totalCount);
+            if (appResult != null) {
+                return appResult;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 针对ECU查询的智能分类（如C81电路图）
+     */
+    private CategoryResult smartCategorizeForEcu(List<CircuitDocument> results, int totalCount, String query) {
+        Map<String, List<CircuitDocument>> categoryMap = new LinkedHashMap<>();
+        
+        // 分析结果中的ECU类型和应用场景
+        for (CircuitDocument doc : results) {
+            String text = (doc.getFileName() != null ? doc.getFileName() : "") + 
+                         (doc.getHierarchyPath() != null ? doc.getHierarchyPath() : "");
+            String lowerText = text.toLowerCase();
+            
+            // 检测具体的ECU系列
+            if (lowerText.contains("edc17c81") || (lowerText.contains("edc17") && lowerText.contains("c81"))) {
+                // 进一步按品牌细分
+                if (lowerText.contains("博世")) {
+                    categoryMap.computeIfAbsent("博世 EDC17C81 相关电路图", k -> new ArrayList<>()).add(doc);
+                } else {
+                    categoryMap.computeIfAbsent("EDC17C81 发动机电脑板电路图", k -> new ArrayList<>()).add(doc);
+                }
+            } else if (lowerText.contains("c81") && (lowerText.contains("挖掘机") || lowerText.contains("工程机械"))) {
+                categoryMap.computeIfAbsent("工程机械中的 C81 型号电路图", k -> new ArrayList<>()).add(doc);
+            } else if (lowerText.contains("c81") && (lowerText.contains("卡车") || lowerText.contains("重卡") || 
+                      lowerText.contains("天龙") || lowerText.contains("杰狮"))) {
+                categoryMap.computeIfAbsent("商用车中的 C81 型号电路图", k -> new ArrayList<>()).add(doc);
+            } else if (lowerText.contains("c81")) {
+                // 按具体应用分类
+                if (lowerText.contains("仪表") || lowerText.contains("显示器")) {
+                    categoryMap.computeIfAbsent("带有 C81 关键字的仪表电路图", k -> new ArrayList<>()).add(doc);
+                } else if (lowerText.contains("整车") || lowerText.contains("全车")) {
+                    categoryMap.computeIfAbsent("带有 C81 关键字的整车电路图", k -> new ArrayList<>()).add(doc);
+                } else {
+                    categoryMap.computeIfAbsent("其他包含 C81 的电路图资料", k -> new ArrayList<>()).add(doc);
+                }
+            }
+        }
+        
+        return buildSmartCategoryResult(categoryMap, totalCount, "ecu_smart", 
+                "我找到了多个与\"C81\"相关的ECU电路图，请问您需要的是以下哪种类型的C81电路图？");
+    }
+    
+    /**
+     * 针对电路图查询的智能分类
+     */
+    private CategoryResult smartCategorizeForCircuit(List<CircuitDocument> results, int totalCount, String query) {
+        Map<String, List<CircuitDocument>> categoryMap = new LinkedHashMap<>();
+        
+        for (CircuitDocument doc : results) {
+            String text = (doc.getFileName() != null ? doc.getFileName() : "") + 
+                         (doc.getHierarchyPath() != null ? doc.getHierarchyPath() : "");
+            String lowerText = text.toLowerCase();
+            
+            // 按电路图类型分类
+            if (lowerText.contains("针脚定义") || lowerText.contains("针脚图")) {
+                categoryMap.computeIfAbsent("ECU针脚定义图", k -> new ArrayList<>()).add(doc);
+            } else if (lowerText.contains("整车") && lowerText.contains("电路")) {
+                categoryMap.computeIfAbsent("整车电路图", k -> new ArrayList<>()).add(doc);
+            } else if (lowerText.contains("仪表") && lowerText.contains("电路")) {
+                categoryMap.computeIfAbsent("仪表电路图", k -> new ArrayList<>()).add(doc);
+            } else if (lowerText.contains("发动机") && lowerText.contains("电路")) {
+                categoryMap.computeIfAbsent("发动机电路图", k -> new ArrayList<>()).add(doc);
+            } else {
+                categoryMap.computeIfAbsent("其他电路图", k -> new ArrayList<>()).add(doc);
+            }
+        }
+        
+        return buildSmartCategoryResult(categoryMap, totalCount, "circuit_smart", 
+                "请问您需要哪种类型的电路图？");
+    }
+    
+    /**
+     * 按应用场景分类（工程机械 vs 商用车）
+     */
+    private CategoryResult categorizeByApplication(List<CircuitDocument> results, int totalCount) {
+        Map<String, List<CircuitDocument>> categoryMap = new LinkedHashMap<>();
+        
+        for (CircuitDocument doc : results) {
+            String text = (doc.getFileName() != null ? doc.getFileName() : "") + 
+                         (doc.getHierarchyPath() != null ? doc.getHierarchyPath() : "");
+            
+            if (text.contains("工程机械") || text.contains("挖掘机") || text.contains("装载机") || 
+                text.contains("推土机") || text.contains("三一") || text.contains("徐工") || 
+                text.contains("卡特") || text.contains("小松")) {
+                categoryMap.computeIfAbsent("工程机械相关", k -> new ArrayList<>()).add(doc);
+            } else if (text.contains("天龙") || text.contains("杰狮") || text.contains("重卡") || 
+                      text.contains("轻卡") || text.contains("牵引车") || text.contains("载货车")) {
+                categoryMap.computeIfAbsent("商用车相关", k -> new ArrayList<>()).add(doc);
+            } else {
+                categoryMap.computeIfAbsent("其他车型", k -> new ArrayList<>()).add(doc);
+            }
+        }
+        
+        return buildSmartCategoryResult(categoryMap, totalCount, "application", 
+                "请问您需要哪种应用场景的资料？");
+    }
+    
+    /**
+     * 传统分类方法（保持原有逻辑）
+     */
+    private CategoryResult traditionalCategorize(List<CircuitDocument> results, int totalCount, Set<String> usedTypes) {
         // 1. 尝试按品牌分类（如果结果涉及多个品牌且未使用过）
         if (!usedTypes.contains("brand")) {
             CategoryResult byBrand = categorizeByBrand(results, totalCount);
@@ -109,6 +271,38 @@ public class ResultCategorizer {
         
         log.debug("无法找到有效的分类方式");
         return null;
+    }
+    
+    /**
+     * 构建智能分类结果
+     */
+    private CategoryResult buildSmartCategoryResult(Map<String, List<CircuitDocument>> categoryMap, 
+                                                   int totalCount, String categoryType, String promptTemplate) {
+        // 过滤掉只有1个文档的分类，并按数量排序
+        categoryMap = categoryMap.entrySet().stream()
+                .filter(e -> e.getValue().size() >= 1) // 智能分类允许单个文档的分类
+                .sorted((a, b) -> b.getValue().size() - a.getValue().size())
+                .limit(MAX_OPTIONS)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (e1, e2) -> e1, LinkedHashMap::new));
+        
+        if (categoryMap.size() < MIN_OPTIONS) {
+            return null;
+        }
+        
+        // 计算分类覆盖的文档数
+        int coveredCount = categoryMap.values().stream().mapToInt(List::size).sum();
+        double coverageRate = (double) coveredCount / totalCount;
+        
+        // 智能分类的覆盖率要求可以适当降低
+        if (coverageRate < 0.4) {
+            log.debug("智能分类覆盖率不足: {}%, 类型: {}", String.format("%.1f", coverageRate * 100), categoryType);
+            return null;
+        }
+        
+        List<Option> options = buildOptions(categoryMap);
+        
+        return new CategoryResult(categoryType, promptTemplate, options, categoryMap);
     }
     
     /**
@@ -343,7 +537,6 @@ public class ResultCategorizer {
         
         for (Map.Entry<String, List<CircuitDocument>> entry : categoryMap.entrySet()) {
             String label = entry.getKey();
-            int count = entry.getValue().size();
             
             // 选项显示：只显示类别名称，不显示数量
             String displayText = label;
@@ -365,6 +558,12 @@ public class ResultCategorizer {
             return results;
         }
         
+        // 智能分类类型的处理
+        if ("ecu_smart".equals(categoryType) || "circuit_smart".equals(categoryType) || 
+            "application".equals(categoryType)) {
+            return filterBySmartCategory(results, categoryValue);
+        }
+        
         // 对于型号分类，需要精确匹配
         if ("model".equals(categoryType)) {
             return results.stream()
@@ -378,6 +577,82 @@ public class ResultCategorizer {
         // 其他分类使用包含匹配
         return results.stream()
                 .filter(doc -> matchesCategory(doc, categoryType, categoryValue))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 智能分类的筛选逻辑
+     */
+    private List<CircuitDocument> filterBySmartCategory(List<CircuitDocument> results, String categoryValue) {
+        return results.stream()
+                .filter(doc -> {
+                    String text = (doc.getFileName() != null ? doc.getFileName() : "") + 
+                                 (doc.getHierarchyPath() != null ? doc.getHierarchyPath() : "");
+                    String lowerText = text.toLowerCase();
+                    
+                    // 根据分类值进行精确匹配
+                    switch (categoryValue) {
+                        case "博世 EDC17C81 相关电路图":
+                            return lowerText.contains("博世") && 
+                                   (lowerText.contains("edc17c81") || 
+                                    (lowerText.contains("edc17") && lowerText.contains("c81")));
+                                    
+                        case "EDC17C81 发动机电脑板电路图":
+                            return (lowerText.contains("edc17c81") || 
+                                    (lowerText.contains("edc17") && lowerText.contains("c81"))) &&
+                                   (lowerText.contains("发动机") || lowerText.contains("电脑板") || lowerText.contains("ecu"));
+                                   
+                        case "工程机械中的 C81 型号电路图":
+                            return lowerText.contains("c81") && 
+                                   (lowerText.contains("挖掘机") || lowerText.contains("装载机") || 
+                                    lowerText.contains("工程机械") || lowerText.contains("三一") || 
+                                    lowerText.contains("徐工") || lowerText.contains("卡特") || lowerText.contains("小松"));
+                                    
+                        case "商用车中的 C81 型号电路图":
+                            return lowerText.contains("c81") && 
+                                   (lowerText.contains("天龙") || lowerText.contains("杰狮") || 
+                                    lowerText.contains("重卡") || lowerText.contains("轻卡") || 
+                                    lowerText.contains("卡车") || lowerText.contains("牵引车"));
+                                    
+                        case "带有 C81 关键字的仪表电路图":
+                            return lowerText.contains("c81") && 
+                                   (lowerText.contains("仪表") || lowerText.contains("显示器"));
+                                   
+                        case "带有 C81 关键字的整车电路图":
+                            return lowerText.contains("c81") && 
+                                   (lowerText.contains("整车") || lowerText.contains("全车"));
+                                   
+                        case "其他包含 C81 的电路图资料":
+                            return lowerText.contains("c81");
+                            
+                        case "ECU针脚定义图":
+                            return lowerText.contains("针脚定义") || lowerText.contains("针脚图");
+                            
+                        case "整车电路图":
+                            return lowerText.contains("整车") && lowerText.contains("电路");
+                            
+                        case "仪表电路图":
+                            return lowerText.contains("仪表") && lowerText.contains("电路");
+                            
+                        case "发动机电路图":
+                            return lowerText.contains("发动机") && lowerText.contains("电路");
+                            
+                        case "工程机械相关":
+                            return lowerText.contains("工程机械") || lowerText.contains("挖掘机") || 
+                                   lowerText.contains("装载机") || lowerText.contains("推土机") || 
+                                   lowerText.contains("三一") || lowerText.contains("徐工") || 
+                                   lowerText.contains("卡特") || lowerText.contains("小松");
+                                   
+                        case "商用车相关":
+                            return lowerText.contains("天龙") || lowerText.contains("杰狮") || 
+                                   lowerText.contains("重卡") || lowerText.contains("轻卡") || 
+                                   lowerText.contains("牵引车") || lowerText.contains("载货车");
+                                   
+                        default:
+                            // 默认使用包含匹配
+                            return text.contains(categoryValue);
+                    }
+                })
                 .collect(Collectors.toList());
     }
     

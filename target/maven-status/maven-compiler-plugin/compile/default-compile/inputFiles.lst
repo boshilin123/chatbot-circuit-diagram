@@ -1,6 +1,8 @@
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\ChatbotApplication.java
+D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\config\AIConfig.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\config\CacheConfig.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\config\RateLimitInterceptor.java
+D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\config\RestTemplateConfig.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\config\WebConfig.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\controller\ChatController.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\controller\HomeController.java
@@ -11,6 +13,7 @@ D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\c
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\model\QueryInfo.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\model\Result.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\model\SelectRequest.java
+D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\service\AIResultCategorizer.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\service\CacheService.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\service\ConversationManager.java
 D:\Java\实习&求职\线上实习考核12.31-1.6\chatbot\src\main\java\com\bo\chatbot\service\DataLoaderService.java
