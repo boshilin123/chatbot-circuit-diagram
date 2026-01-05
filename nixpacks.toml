@@ -2,7 +2,9 @@
 nixPkgs = ['maven', 'jdk21']
 
 [phases.build]
-cmds = ['mvn clean package -DskipTests']
+cmds = [
+  'mvn clean package -DskipTests -Dproject.build.sourceEncoding=UTF-8 -Dproject.reporting.outputEncoding=UTF-8'
+]
 
 [start]
-cmd = 'java -Dserver.port=$PORT -jar target/chatbot-0.0.1-SNAPSHOT.jar'
+cmd = 'java -Dserver.port=$PORT -Dfile.encoding=UTF-8 -jar target/chatbot-0.0.1-SNAPSHOT.jar'
