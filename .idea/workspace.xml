@@ -4,29 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="缓存、限流、监控等多个复杂模块">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/controller/ChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/controller/ChatController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ConversationManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ConversationManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ResultCategorizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/ResultCategorizer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/SmartSearchEngine.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bo/chatbot/service/SmartSearchEngine.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/css/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/js/chat.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$ConversationState.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$ConversationState.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine$ScoredDocument.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine$ScoredDocument.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/css/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/static/js/chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/js/chat.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-    </list>
+    <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="功能完善，代码测试" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -134,7 +112,7 @@
       <workItem from="1767233112648" duration="3670000" />
       <workItem from="1767256941062" duration="6012000" />
       <workItem from="1767487446581" duration="17011000" />
-      <workItem from="1767538368413" duration="14952000" />
+      <workItem from="1767538368413" duration="17346000" />
     </task>
     <task id="LOCAL-00001" summary="项目初始化构建">
       <option name="closed" value="true" />
@@ -208,7 +186,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767538166280</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="功能完善，代码测试">
+      <option name="closed" value="true" />
+      <created>1767605837421</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1767605837422</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -221,6 +207,7 @@
     <MESSAGE value="DeepSeek API代码开发" />
     <MESSAGE value="多轮对话引导 + 业务逻辑优化 + 分页功能" />
     <MESSAGE value="缓存、限流、监控等多个复杂模块" />
-    <option name="LAST_COMMIT_MESSAGE" value="缓存、限流、监控等多个复杂模块" />
+    <MESSAGE value="功能完善，代码测试" />
+    <option name="LAST_COMMIT_MESSAGE" value="功能完善，代码测试" />
   </component>
 </project>
