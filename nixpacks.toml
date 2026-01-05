@@ -5,4 +5,4 @@ nixPkgs = ['maven', 'jdk21']
 cmds = ['mvn clean package -DskipTests']
 
 [start]
-cmd = 'java -jar target/chatbot-0.0.1-SNAPSHOT.jar --server.port=$PORT'
+cmd = 'java -Dserver.port=$PORT -jar target/chatbot-0.0.1-SNAPSHOT.jar'
