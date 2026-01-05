@@ -4,6 +4,7 @@ import com.bo.chatbot.model.CircuitDocument;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -36,12 +37,18 @@ public class DataLoaderService {
         log.info("开始加载电路图资料数据...");
         
         try {
-            // 读取 CSV 文件 - 使用ClassPathResource确保在JAR中也能正确加载
-            InputStream is = getClass().getClassLoader().getResourceAsStream("资料清单.csv");
-            if (is == null) {
+            // 使用Spring的ClassPathResource加载文件,支持JAR内资源
+            ClassPathResource resource = new ClassPathResource("资料清单.csv");
+            
+            if (!resource.exists()) {
                 log.error("找不到资料清单.csv文件");
                 return;
             }
+            
+            log.info("找到资料清单.csv文件,路径: {}", resource.getPath());
+            
+            // 读取 CSV 文件
+            InputStream is = resource.getInputStream();
             
             // 使用 OpenCSV 解析
             CSVReader reader = new CSVReader(new InputStreamReader(is, StandardCharsets.UTF_8));
