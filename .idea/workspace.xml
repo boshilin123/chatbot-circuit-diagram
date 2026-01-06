@@ -5,63 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7bd46da3-6adc-4b30-adef-43d48317d450" name="更改" comment="功能完善，代码测试">
-      <change beforePath="$PROJECT_DIR$/nixpacks.toml" beforeDir="false" afterPath="$PROJECT_DIR$/nixpacks.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/ChatbotApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/ChatbotApplication.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/AIConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/AIConfig.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/CacheConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/CacheConfig.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/RateLimitInterceptor.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/RateLimitInterceptor.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/RestTemplateConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/RestTemplateConfig.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/WebConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/config/WebConfig.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/ChatController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/HomeController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/controller/HomeController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatResponseData.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/ChatResponseData.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/CircuitDocument.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/CircuitDocument.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Option.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Option.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/QueryInfo.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/QueryInfo.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Result.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/Result.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/SelectRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/model/SelectRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/AIResultCategorizer$AICategoryResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/AIResultCategorizer$AICategoryResult.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/AIResultCategorizer$CategoryInfo.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/AIResultCategorizer$CategoryInfo.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/AIResultCategorizer.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/AIResultCategorizer.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/CacheService$CacheEntry.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/CacheService$CacheEntry.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/CacheService$CacheStats.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/CacheService$CacheStats.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/CacheService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/CacheService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$ConversationState.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$ConversationState.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$PageInfo.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$PageInfo.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$StateSnapshot.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager$StateSnapshot.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ConversationManager.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/css/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DataLoaderService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DataLoaderService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$ChatRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$ChatRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$ChatResponse$Choice.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$ChatResponse$Choice.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$ChatResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$ChatResponse.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$Message.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService$Message.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/DeepSeekService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/KeywordExtractor.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/KeywordExtractor.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$HealthStatus.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$HealthStatus.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$PerformanceRecord.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$PerformanceRecord.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$RequestContext.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$RequestContext.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$SystemHealth.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService$SystemHealth.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/MonitoringService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/OptimizedQueryUnderstandingService$ProcessingStats.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/OptimizedQueryUnderstandingService$ProcessingStats.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/OptimizedQueryUnderstandingService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/OptimizedQueryUnderstandingService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/PromptBuilder.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/PromptBuilder.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/QueryComplexityAnalyzer$QueryComplexityResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/QueryComplexityAnalyzer$QueryComplexityResult.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/QueryComplexityAnalyzer.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/QueryComplexityAnalyzer.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/QueryUnderstandingService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/QueryUnderstandingService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService$RateLimitRecord.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService$RateLimitRecord.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService$RateLimitResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService$RateLimitResult.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService$RateLimitStats.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService$RateLimitStats.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/RateLimitService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer$CategoryResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer$CategoryResult.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/ResultCategorizer.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SearchIndex.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SearchIndex.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SimilarityScorer$ScoreDetail.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SimilarityScorer$ScoreDetail.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SimilarityScorer.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SimilarityScorer.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine$ScoredDocument.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine$ScoredDocument.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bo/chatbot/service/SmartSearchEngine.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/test-classes/com/bo/chatbot/ChatbotApplicationTests.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/test-classes/com/bo/chatbot/ChatbotApplicationTests.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/static/css/style.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,12 +46,12 @@
     &quot;assignee&quot;: &quot;boshilin123&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "git@github.com:boshilin123/chatbot-circuit-diagram.git",
-    "accountId": "324738f4-7052-4f43-9ed4-bcbd498bb2b8"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:boshilin123/chatbot-circuit-diagram.git&quot;,
+    &quot;accountId&quot;: &quot;324738f4-7052-4f43-9ed4-bcbd498bb2b8&quot;
   }
-}]]></component>
+}</component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -120,27 +68,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "Spring Boot.ChatbotApplication.executor": "Run",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Spring Boot.ChatbotApplication.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="ChatbotApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
@@ -170,7 +118,8 @@
       <workItem from="1767233112648" duration="3670000" />
       <workItem from="1767256941062" duration="6012000" />
       <workItem from="1767487446581" duration="17011000" />
-      <workItem from="1767538368413" duration="20089000" />
+      <workItem from="1767538368413" duration="20698000" />
+      <workItem from="1767660583161" duration="1371000" />
     </task>
     <task id="LOCAL-00001" summary="项目初始化构建">
       <option name="closed" value="true" />

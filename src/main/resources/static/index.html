@@ -28,7 +28,12 @@
                 
                 <!-- 会话列表 -->
                 <div class="session-list-section">
-                    <h4 class="section-title">💬 会话历史</h4>
+                    <div class="section-header">
+                        <h4 class="section-title">💬 会话历史</h4>
+                        <button id="clearAllBtn" class="clear-all-btn-inline" title="清空所有会话">
+                            🗑️
+                        </button>
+                    </div>
                     <div id="sessionList" class="session-list">
                         <div class="session-empty">
                             <div class="empty-icon">💭</div>
@@ -37,14 +42,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- 底部操作按钮 -->
-            <div class="history-actions">
-                <button id="clearAllBtn" class="clear-all-btn">
-                    <span class="btn-icon">🗑️</span>
-                    清空所有会话
-                </button>
             </div>
         </div>
 
