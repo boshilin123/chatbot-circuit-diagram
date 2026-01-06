@@ -752,8 +752,9 @@ body {
 }
 
 .session-list {
-    max-height: 25vh;
+    max-height: calc(60vh - 200px);
     overflow-y: auto;
+    padding-bottom: 10px;
 }
 
 .session-empty {
@@ -853,29 +854,32 @@ body {
 
 .session-delete {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 12px;
+    right: 12px;
     background: rgba(220, 53, 69, 0.1);
     color: #dc3545;
     border: none;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 12px;
-    display: none;
+    font-size: 14px;
+    display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    z-index: 10;
+    opacity: 0.7;
 }
 
 .session-item:hover .session-delete {
-    display: flex;
+    opacity: 1;
 }
 
 .session-delete:hover {
     background: #dc3545;
     color: white;
+    transform: scale(1.1);
 }
 
 
