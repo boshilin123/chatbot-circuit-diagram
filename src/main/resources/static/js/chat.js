@@ -374,7 +374,7 @@ class ChatApp {
                         🎯 拥有 <strong>4000+</strong> 条电路图资料，采用智能搜索技术<br>
                         ⚡ 简单查询秒级响应，复杂问题AI理解<br>
                         📋 支持历史记录，方便随时查看<br><br>
-                        💡 <strong>推荐简单搜索</strong>（响应更快）：<br>
+                        💡 <strong>推荐搜索示例</strong>：<br>
                         <div class="example-queries">
                             <span class="example-tag">东风天龙仪表</span>
                             <span class="example-tag">红岩杰狮保险丝</span>
