@@ -16,6 +16,10 @@
 - 原始数据迁移到 `data/`
 - `/api/health`
 - `/api/chat` 基础模型调用
+- Phase 2：CSV -> LangChain Document
+- 独立 CSV Loader / Document Schema
+- `scripts/ingest.py --dry-run`
+- Loader 单元测试
 
 尚未实现：
 
