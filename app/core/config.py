@@ -19,10 +19,15 @@ class Settings(BaseSettings):
 
     milvus_uri: str = "http://localhost:19530"
     milvus_dense_collection: str = "circuit_documents_dense"
+    milvus_hybrid_collection: str = "circuit_documents_hybrid"
     milvus_consistency_level: str = "Session"
     milvus_timeout: float = 30.0
 
     dense_top_k: int = 20
+    sparse_top_k: int = 20
+    hybrid_candidate_k: int = 20
+    hybrid_top_k: int = 10
+    rrf_k: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",
