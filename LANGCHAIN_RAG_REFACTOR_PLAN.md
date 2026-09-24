@@ -25,7 +25,8 @@
 - ✅ Phase 3 已完成代码实现：本地 Embedding、Milvus Standalone、Dense VectorStore 与 Dense Retriever；
 - ✅ Phase 4 已完成代码实现：Milvus BM25、Sparse Search、Dense + Sparse Hybrid Search、RRF；
 - ✅ Phase 5 已完成代码实现：Qwen3 Cross-Encoder Reranker 与完整 Retrieval Pipeline；
-- ▶️ **下一开发阶段：Phase 6 — Structured Output + Query Rewrite。**
+- ✅ Phase 6 已完成代码实现：Structured Output、Query Rewrite、Metadata Filter 与 Query Plan；
+- ▶️ **下一开发阶段：Phase 7 — Agent + Tools。**
 
 当前关键提交：
 
@@ -37,6 +38,7 @@ db5f92c  feat: add LangChain document ingestion pipeline
 eefb0fa  refactor: align code style with LangChain course examples
 acfdaec  feat: add BM25 and hybrid RRF retrieval
 5b74729  feat: add Cross-Encoder reranking pipeline
+f0b7960  feat: add structured intent and query rewrite pipeline
 ```
 
 ---
@@ -1215,12 +1217,53 @@ final_docs = cross_encoder_rerank(
 
 ### Phase 6：Structured Output + Query Rewrite
 
-- [ ] 定义 SearchIntent；
-- [ ] LLM Structured Output；
-- [ ] Query Rewrite；
-- [ ] 保留原 Query；
-- [ ] 不允许重写阶段虚构未知型号；
-- [ ] 可确认字段用于 Metadata Filter。
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/schemas/intent.py
+app/schemas/query.py
+app/rag/intent_parser.py
+app/rag/query_rewriter.py
+app/rag/filters.py
+app/rag/query_pipeline.py
+scripts/prepare_query.py
+tests/test_intent_parser.py
+tests/test_query_rewriter.py
+tests/test_filters.py
+```
+
+实现风格对齐课程示例：
+
+```python
+structured_model = model.with_structured_output(SearchIntent)
+intent = structured_model.invoke(...)
+
+rewrite_prompt = f"""...
+问题: {query}
+关键词:
+"""
+
+response = model.invoke(rewrite_prompt)
+rewritten_query = response.content
+```
+
+- [x] 定义 Pydantic `SearchIntent`；
+- [x] 使用 `model.with_structured_output(SearchIntent)`；
+- [x] 直接返回 Pydantic 结构化对象；
+- [x] 实现课程风格 `rewrite_query()`；
+- [x] Query Rewrite 使用“核心概念 + 空格分隔 + 只输出关键词”提示词；
+- [x] 明确保留品牌、车型、发动机、ECU、数字字母型号；
+- [x] 明确禁止补充用户没有提供的具体型号；
+- [x] 保留 `original_query` 与 `rewritten_query`；
+- [x] 实现 `build_metadata_filter()`；
+- [x] 仅使用高置信度结构化字段构造 Milvus Filter；
+- [x] 普通 `keywords` 不直接硬过滤，避免召回率下降；
+- [x] 实现统一 `SearchQueryPlan`；
+- [x] 新增 `scripts/prepare_query.py`；
+- [x] 新增 Structured Output / Rewrite / Filter 测试；
+- [ ] **最终验证阶段执行**：真实 DeepSeek Structured Output、Query Rewrite、车型编码保留、Metadata Filter 与 Retrieval 联调。
 
 ### Phase 7：Agent + Tools
 
