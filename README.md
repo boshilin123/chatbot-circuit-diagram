@@ -38,11 +38,15 @@
 - rewrite_query()
 - Metadata Filter
 - SearchQueryPlan
+- Phase 7：Agent + Tools
+- @tool search_knowledge_base()
+- @tool get_document_by_id()
+- create_agent()
+- /api/chat Agent 接入
 
 尚未实现：
 
 - Reranker
-- Agent Tools
 - LangGraph 多轮澄清
 - Retrieval Benchmark
 
@@ -308,6 +312,49 @@ SearchQueryPlan
 - `scripts/prepare_query.py`：查询优化预览入口。
 
 Query Rewrite 保留原始车型、ECU 和字母数字编码，不猜测未知型号。
+
+运行验证继续统一放到最终验证阶段。
+
+## LangChain Agent
+
+Phase 7 对齐课程中的 `@tool + create_agent` 示例：
+
+```text
+User
+  ↓
+create_agent()
+  │
+  ├── 普通问候 → Model 直接回答
+  │
+  └── 资料检索
+          ↓
+   search_knowledge_base()
+          ↓
+   prepare_search_query()
+          ↓
+      retrieve_docs()
+          ↓
+      Tool Result
+          ↓
+       Agent Reply
+```
+
+当前 Agent 工具只有两个：
+
+- `search_knowledge_base()`：车辆电路图 RAG 检索；
+- `get_document_by_id()`：按文档 ID 精确获取资料。
+
+核心文件：
+
+- `app/agents/circuit_agent.py`：`create_agent()` 与 System Prompt；
+- `app/tools/search_knowledge_base.py`：检索 Tool；
+- `app/tools/get_document.py`：文档 ID Tool；
+- `app/rag/document_store.py`：本地 ID 索引；
+- `scripts/run_agent.py`：Agent 命令行入口。
+
+`/api/chat` 已经接入 Agent。
+
+“候选结果 >5 必须继续澄清、最终 <=5”的硬业务规则不交给 Agent，由下一阶段 LangGraph 实现。
 
 运行验证继续统一放到最终验证阶段。
 
