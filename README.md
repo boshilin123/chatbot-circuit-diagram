@@ -43,11 +43,17 @@
 - @tool get_document_by_id()
 - create_agent()
 - /api/chat Agent 接入
+- Phase 8：LangGraph 多轮澄清
+- StateGraph / Conditional Edge
+- InMemorySaver / thread_id
+- interrupt() / Command(resume=...)
+- 3～5 个真实 Facet 选项
+- 返回上一步
+- 最终结果 <= 5
 
 尚未实现：
 
 - Reranker
-- LangGraph 多轮澄清
 - Retrieval Benchmark
 
 完整实施路线见 [`LANGCHAIN_RAG_REFACTOR_PLAN.md`](./LANGCHAIN_RAG_REFACTOR_PLAN.md)。
@@ -355,6 +361,61 @@ create_agent()
 `/api/chat` 已经接入 Agent。
 
 “候选结果 >5 必须继续澄清、最终 <=5”的硬业务规则不交给 Agent，由下一阶段 LangGraph 实现。
+
+运行验证继续统一放到最终验证阶段。
+
+## LangGraph Workflow
+
+Web 主流程从 Phase 8 起由 LangGraph 接管：
+
+```text
+START
+  ↓
+understand_query
+  │
+  ├── 普通对话 → chat → END
+  │
+  └── 搜索
+        ↓
+   rewrite_query
+        ↓
+      retrieve
+        ↓
+  result_count
+   ├── 0 → no_results → END
+   ├── <=5 → final_answer → END
+   └── >5
+         ↓
+    build_facets
+         ↓
+       clarify
+         ↓
+      interrupt
+         ↓
+    用户 /api/select
+         ↓
+ Command(resume=...)
+         ↓
+  filter candidates
+         └────→ result_count
+```
+
+课程概念在项目中的对应：
+
+- `CircuitSearchState`：State；
+- `app/graph/nodes/*`：Nodes；
+- `add_edge`：固定流程；
+- `add_conditional_edges`：条件分支；
+- `InMemorySaver`：本地 Checkpointer；
+- `sessionId`：`thread_id`；
+- `interrupt()`：等待用户选择；
+- `Command(resume=...)`：恢复 Graph。
+
+候选 >5 时不会由 Agent 自由决定，而是由 Graph 强制进入澄清；最终输出硬限制为 <=5。
+
+Facet 优先从真实 `hierarchy_path` 中生成，不由 LLM 编造。
+
+前端已支持一次渲染 1～5 条最终资料。
 
 运行验证继续统一放到最终验证阶段。
 
