@@ -22,7 +22,8 @@
 - ⏳ **待用户手动完成：在 DeepSeek 控制台吊销历史泄露的旧 Key，并生成新 Key；**
 - ✅ Phase 2 已完成代码实现：CSV Loader、Document Schema、导入脚本与 Loader 测试；
 - ⏳ **所有运行验证统一放到最终验证阶段，不在各 Phase 中间打断开发；**
-- ▶️ **下一开发阶段：Phase 3 — Milvus + Dense Retrieval。**
+- ✅ Phase 3 已完成代码实现：本地 Embedding、Milvus Standalone、Dense VectorStore 与 Dense Retriever；
+- ▶️ **下一开发阶段：Phase 4 — BM25 + Hybrid Retrieval。**
 
 当前关键提交：
 
@@ -30,6 +31,7 @@
 5030b2b  chore: complete phase 0 repository cleanup
 cb8d54f  refactor: start Python FastAPI LangChain migration
 db5f92c  feat: add LangChain document ingestion pipeline
+1bfa1f2  feat: add Milvus dense retrieval layer
 ```
 
 ---
@@ -926,13 +928,35 @@ python scripts/ingest.py --dry-run
 
 ### Phase 3：Milvus + Dense Retrieval
 
-- [ ] 添加 `docker-compose.yml`；
-- [ ] 本机启动 Milvus Standalone；
-- [ ] 接入 Embedding；
-- [ ] 创建 Collection；
-- [ ] 写入所有文档；
-- [ ] 实现 Dense TopK 检索；
-- [ ] 编写基本检索测试。
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/rag/embeddings.py
+app/rag/vectorstore.py
+app/rag/retriever.py
+app/schemas/search.py
+scripts/index_dense.py
+scripts/search_dense.py
+tests/test_retrieval.py
+docker-compose.yml
+```
+
+- [x] 添加 `docker-compose.yml`；
+- [x] 使用 Milvus Standalone，本地服务地址设计为 `http://localhost:19530`；
+- [x] 接入 `langchain-huggingface`；
+- [x] Dense Embedding 默认使用 `BAAI/bge-m3`；
+- [x] Embedding、VectorStore、Retriever 分模块实现；
+- [x] 创建独立 Dense Collection 配置；
+- [x] Dense 索引使用 HNSW + COSINE；
+- [x] 支持按 `doc_id` 作为稳定主键写入；
+- [x] 实现 Dense TopK 检索；
+- [x] 实现 `scripts/index_dense.py` 索引入口；
+- [x] 实现 `scripts/search_dense.py` 检索入口；
+- [x] 编写 Dense Retriever 单元测试；
+- [x] Docker 持久化数据 `volumes/` 加入 `.gitignore`；
+- [ ] **最终验证阶段执行**：Docker Compose 启动、BGE-M3 下载、全量向量写入、Dense Search 和 pytest。
 
 ### Phase 4：BM25 + Hybrid Retrieval
 
