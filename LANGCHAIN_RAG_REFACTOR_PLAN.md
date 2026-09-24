@@ -26,7 +26,8 @@
 - ✅ Phase 4 已完成代码实现：Milvus BM25、Sparse Search、Dense + Sparse Hybrid Search、RRF；
 - ✅ Phase 5 已完成代码实现：Qwen3 Cross-Encoder Reranker 与完整 Retrieval Pipeline；
 - ✅ Phase 6 已完成代码实现：Structured Output、Query Rewrite、Metadata Filter 与 Query Plan；
-- ▶️ **下一开发阶段：Phase 7 — Agent + Tools。**
+- ✅ Phase 7 已完成代码实现：@tool、search_knowledge_base、get_document_by_id、create_agent 与 API 接入；
+- ▶️ **下一开发阶段：Phase 8 — LangGraph 多轮澄清。**
 
 当前关键提交：
 
@@ -39,6 +40,7 @@ eefb0fa  refactor: align code style with LangChain course examples
 acfdaec  feat: add BM25 and hybrid RRF retrieval
 5b74729  feat: add Cross-Encoder reranking pipeline
 f0b7960  feat: add structured intent and query rewrite pipeline
+00af3aa  feat: add LangChain agent and retrieval tools
 ```
 
 ---
@@ -1267,11 +1269,56 @@ rewritten_query = response.content
 
 ### Phase 7：Agent + Tools
 
-- [ ] Retriever 包装为 `search_circuit_documents` Tool；
-- [ ] 实现 `get_document_by_id` Tool；
-- [ ] 创建 LangChain Agent；
-- [ ] 问候不触发搜索；
-- [ ] 资料查询触发 Retriever。
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/tools/search_knowledge_base.py
+app/tools/get_document.py
+app/agents/circuit_agent.py
+app/rag/document_store.py
+app/schemas/tool.py
+scripts/run_agent.py
+tests/test_agent.py
+tests/test_document_store.py
+```
+
+实现风格对齐课程第 2 章 Agent / Tool 示例：
+
+```python
+from langchain.tools import tool
+from langchain.agents import create_agent
+
+@tool
+def search_knowledge_base(query: str):
+    """搜索车辆电路图资料库。"""
+    ...
+
+agent = create_agent(
+    model=model,
+    tools=[search_knowledge_base, get_document_by_id],
+    system_prompt=system_prompt,
+)
+```
+
+- [x] 使用 `@tool` 创建 `search_knowledge_base()`；
+- [x] Tool 内部调用 `prepare_search_query()`；
+- [x] Tool 内部调用 `retrieve_docs()`；
+- [x] Tool 只返回资料库真实 ID / title / hierarchy_path；
+- [x] 实现 `get_document_by_id()`；
+- [x] 建立本地 `doc_id -> Document` 精确索引；
+- [x] Tool 参数使用独立 Pydantic Schema；
+- [x] 使用 `create_agent()` 创建车辆电路图 Agent；
+- [x] Agent System Prompt 明确 Tool 调用边界；
+- [x] 普通问候允许直接回答；
+- [x] 具体资料检索要求必须调用 `search_knowledge_base`；
+- [x] 明确禁止 Agent 编造车型、ECU、文档 ID 和检索结果；
+- [x] `/api/chat` 已切换到 Agent；
+- [x] 新增 `scripts/run_agent.py`；
+- [x] 新增 Agent / Document Store 测试；
+- [x] Agent 不承担“候选 >5 必须澄清”的硬规则，该规则保留给 Phase 8 LangGraph；
+- [ ] **最终验证阶段执行**：问候不调用 Tool、资料查询触发 Tool、Tool Calling 循环、Agent 最终回复与 FastAPI 联调。
 
 ### Phase 8：LangGraph 多轮澄清
 
