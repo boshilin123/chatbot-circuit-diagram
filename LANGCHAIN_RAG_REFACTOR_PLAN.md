@@ -27,7 +27,8 @@
 - ✅ Phase 5 已完成代码实现：Qwen3 Cross-Encoder Reranker 与完整 Retrieval Pipeline；
 - ✅ Phase 6 已完成代码实现：Structured Output、Query Rewrite、Metadata Filter 与 Query Plan；
 - ✅ Phase 7 已完成代码实现：@tool、search_knowledge_base、get_document_by_id、create_agent 与 API 接入；
-- ▶️ **下一开发阶段：Phase 8 — LangGraph 多轮澄清。**
+- ✅ Phase 8 已完成代码实现：StateGraph、多轮候选收敛、interrupt/Command、Checkpointer、thread_id、返回上一步；
+- ▶️ **下一开发阶段：Phase 9 — Retrieval Evaluation。**
 
 当前关键提交：
 
@@ -41,6 +42,7 @@ acfdaec  feat: add BM25 and hybrid RRF retrieval
 5b74729  feat: add Cross-Encoder reranking pipeline
 f0b7960  feat: add structured intent and query rewrite pipeline
 00af3aa  feat: add LangChain agent and retrieval tools
+3c9c6ae  feat: add LangGraph multi-turn clarification workflow
 ```
 
 ---
@@ -1322,15 +1324,80 @@ agent = create_agent(
 
 ### Phase 8：LangGraph 多轮澄清
 
-- [ ] 定义 CircuitSearchState；
-- [ ] 建立 Graph Node；
-- [ ] Conditional Edge；
-- [ ] <= 5 直接结束；
-- [ ] > 5 进入 Facet；
-- [ ] 生成 3～5 个选项；
-- [ ] 用户选择后过滤；
-- [ ] 支持返回上一步；
-- [ ] Checkpointer 保存状态。
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/graph/state.py
+app/graph/workflow.py
+app/graph/service.py
+app/graph/nodes/understand.py
+app/graph/nodes/chat.py
+app/graph/nodes/rewrite.py
+app/graph/nodes/retrieve.py
+app/graph/nodes/facets.py
+app/graph/nodes/clarify.py
+app/graph/nodes/answer.py
+app/schemas/graph.py
+tests/test_facets.py
+tests/test_graph_selection.py
+tests/test_graph_routes.py
+```
+
+实现风格对齐课程 LangGraph / Runtime 示例：
+
+```python
+builder = StateGraph(CircuitSearchState)
+
+builder.add_node(...)
+builder.add_edge(START, ...)
+builder.add_conditional_edges(...)
+
+checkpointer = InMemorySaver()
+
+graph = builder.compile(
+    checkpointer=checkpointer,
+)
+```
+
+用户选择使用课程 Human-in-the-loop 风格：
+
+```python
+selection = interrupt({...})
+
+graph.ainvoke(
+    Command(resume=option_value),
+    config={"configurable": {"thread_id": session_id}},
+)
+```
+
+- [x] 定义 `CircuitSearchState`；
+- [x] 查询理解、Rewrite、Retrieve、Facet、Clarify、Answer 全部拆成独立 Node；
+- [x] 使用 `StateGraph`；
+- [x] 使用 `START / END`；
+- [x] 使用 `add_conditional_edges()`；
+- [x] 使用 `InMemorySaver` 作为本地 Checkpointer；
+- [x] 使用浏览器 `sessionId` 作为 `thread_id`；
+- [x] 普通问候不进入 RAG；
+- [x] 搜索请求进入 Query Rewrite + Hybrid Retrieval；
+- [x] 候选为 0 时进入确定性 no-results；
+- [x] 候选 <=5 时直接进入 `final_answer`；
+- [x] 候选 >5 时硬编码进入 `build_facets`；
+- [x] Facet 选项优先来源于 CSV 真实 `层级路径`，不由 LLM 编造；
+- [x] 单轮选项总数控制在 3～5；
+- [x] 使用 `interrupt()` 暂停 Graph 等待用户选择；
+- [x] `/api/select` 使用 `Command(resume=...)` 恢复；
+- [x] 用户选择后只过滤当前候选集合，不重新生成虚假结果；
+- [x] 已使用 Facet 写入 `used_facets`，避免重复询问同一层级；
+- [x] 保存 Candidate Snapshot，支持“返回上一步”；
+- [x] 最终结果通过 Graph 硬限制为最多 5 条；
+- [x] 前端 `result` 已扩展支持 1～5 个 `documents[]`；
+- [x] 继续保留单个 `document` 字段兼容旧前端数据结构；
+- [x] Web 主流程从 Agent 直调切换为 LangGraph；
+- [x] Phase 7 Agent / Tools 仍独立保留，可用于 Tool Calling 学习与单独运行；
+- [x] 新增 Facet / Selection / Route 测试；
+- [ ] **最终验证阶段执行**：Graph 编译、interrupt/resume、多轮筛选、返回上一步、thread_id、浏览器完整流程。
 
 ### Phase 9：评估系统
 
