@@ -20,11 +20,13 @@
 - 独立 CSV Loader / Document Schema
 - `scripts/ingest.py --dry-run`
 - Loader 单元测试
+- Milvus Dense Retrieval
+- BGE-M3 本地 Embedding
+- HNSW + COSINE Dense Index
+- Dense Retriever / 索引脚本 / 搜索脚本
 
 尚未实现：
 
-- Milvus
-- Dense Retrieval
 - BM25
 - Hybrid Retrieval
 - Reranker
@@ -107,6 +109,10 @@ http://127.0.0.1:8000/api/health
 │   ├── api/
 │   ├── core/
 │   ├── rag/
+│   │   ├── embeddings.py
+│   │   ├── loader.py
+│   │   ├── retriever.py
+│   │   └── vectorstore.py
 │   ├── schemas/
 │   └── main.py
 ├── data/
@@ -117,7 +123,9 @@ http://127.0.0.1:8000/api/health
 │   ├── js/
 │   └── index.html
 ├── scripts/
-│   └── ingest.py
+│   ├── index_dense.py
+│   ├── ingest.py
+│   └── search_dense.py
 ├── tests/
 │   ├── test_health.py
 │   └── test_loader.py
@@ -149,6 +157,35 @@ python scripts/ingest.py --dry-run
 ```
 
 运行验证会在核心模块完成后统一执行。
+
+## Dense Retrieval
+
+Phase 3 已建立独立 Dense 检索层：
+
+```text
+LangChain Document
+        ↓
+BAAI/bge-m3
+        ↓
+HNSW / COSINE
+        ↓
+Milvus Standalone
+        ↓
+DenseRetriever
+```
+
+职责拆分：
+
+- `app/rag/embeddings.py`：Embedding Model；
+- `app/rag/vectorstore.py`：Milvus Collection / Index / 数据写入；
+- `app/rag/retriever.py`：Dense Search；
+- `scripts/index_dense.py`：全量 Dense 索引入口；
+- `scripts/search_dense.py`：命令行检索入口；
+- `docker-compose.yml`：本地 Milvus Standalone。
+
+当前只实现 Dense 路径。BM25 与 Hybrid Fusion 在 Phase 4 实现。
+
+所有运行验证继续统一放在最终验证阶段。
 
 ## 旧版
 
