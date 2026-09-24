@@ -24,11 +24,15 @@
 - BGE-M3 本地 Embedding
 - HNSW + COSINE Dense Index
 - Dense Retriever / 索引脚本 / 搜索脚本
+- Phase 4：BM25 + Hybrid Retrieval
+- Milvus BM25BuiltInFunction
+- sparse_search / hybrid_search
+- AnnSearchRequest + RRFRanker(k=60)
+- 独立 reciprocal_rank_fusion
 
 尚未实现：
 
-- BM25
-- Hybrid Retrieval
+- Reranker
 - Reranker
 - Structured Output / Query Rewrite
 - Agent Tools
@@ -186,6 +190,48 @@ DenseRetriever
 当前只实现 Dense 路径。BM25 与 Hybrid Fusion 在 Phase 4 实现。
 
 所有运行验证继续统一放在最终验证阶段。
+
+## Hybrid Retrieval
+
+Phase 4 按课程第 4 章 Milvus 示例实现：
+
+```text
+                  Query
+                    │
+          ┌─────────┴─────────┐
+          ▼                   ▼
+      dense_search       sparse_search
+       COSINE                 BM25
+          │                   │
+          └─────────┬─────────┘
+                    ▼
+          hybrid_search(query, ranker)
+                    │
+                    ▼
+             RRFRanker(k=60)
+                    │
+                    ▼
+              Hybrid TopK
+```
+
+核心文件：
+
+- `app/rag/hybrid_vectorstore.py`：Dense + Sparse Collection；
+- `app/rag/hybrid_search.py`：`sparse_search()` / `hybrid_search()`；
+- `app/rag/fusion.py`：手写 `reciprocal_rank_fusion()`；
+- `scripts/index_hybrid.py`：Hybrid Collection 导入；
+- `scripts/search_sparse.py`：BM25 检索；
+- `scripts/search_hybrid.py`：RRF 混合检索。
+
+BM25 使用 Milvus 内置函数：
+
+```python
+BM25BuiltInFunction(
+    analyzer_params={"type": "chinese"},
+)
+```
+
+运行验证统一留到最终验证阶段。
 
 ## 旧版
 
