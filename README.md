@@ -19,7 +19,6 @@
 
 尚未实现：
 
-- CSV -> LangChain Document
 - Milvus
 - Dense Retrieval
 - BM25
@@ -103,6 +102,7 @@ http://127.0.0.1:8000/api/health
 ├── app/
 │   ├── api/
 │   ├── core/
+│   ├── rag/
 │   ├── schemas/
 │   └── main.py
 ├── data/
@@ -112,11 +112,39 @@ http://127.0.0.1:8000/api/health
 │   ├── css/
 │   ├── js/
 │   └── index.html
+├── scripts/
+│   └── ingest.py
 ├── tests/
+│   ├── test_health.py
+│   └── test_loader.py
 ├── .env.example
 ├── pyproject.toml
 └── LANGCHAIN_RAG_REFACTOR_PLAN.md
 ```
+
+## 数据导入设计
+
+当前采用：
+
+```text
+1 CSV Row = 1 LangChain Document
+```
+
+真实 CSV 表头为：
+
+```text
+ID / 层级路径 / 关联文件名称
+```
+
+Loader 位于 `app/rag/loader.py`，不会在 API、Milvus 或 Agent 模块中重复解析 CSV。
+
+当前已准备：
+
+```bash
+python scripts/ingest.py --dry-run
+```
+
+运行验证会在核心模块完成后统一执行。
 
 ## 旧版
 
