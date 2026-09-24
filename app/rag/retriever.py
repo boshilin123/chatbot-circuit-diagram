@@ -5,11 +5,11 @@ from typing import Protocol
 from langchain_core.documents import Document
 
 from app.core.config import get_settings
-from app.rag.vectorstore import create_dense_vector_store
+from app.rag.vectorstore import create_dense_vectorstore
 from app.schemas.search import DenseSearchResult
 
 
-class DenseVectorStore(Protocol):
+class VectorStore(Protocol):
     def similarity_search_with_score(
         self,
         query: str,
@@ -19,42 +19,43 @@ class DenseVectorStore(Protocol):
     ) -> list[tuple[Document, float]]: ...
 
 
-class DenseRetriever:
-    """Thin retrieval service around the Milvus vector store."""
+def dense_search(
+    query: str,
+    *,
+    top_k: int | None = None,
+    expr: str | None = None,
+    vectorstore: VectorStore | None = None,
+) -> list[DenseSearchResult]:
+    """稠密向量检索。"""
 
-    def __init__(self, vector_store: DenseVectorStore | None = None) -> None:
-        self._vector_store = vector_store or create_dense_vector_store()
+    query = query.strip()
+    if not query:
+        return []
 
-    def search(
-        self,
-        query: str,
-        *,
-        top_k: int | None = None,
-        expr: str | None = None,
-    ) -> list[DenseSearchResult]:
-        normalized_query = query.strip()
-        if not normalized_query:
-            return []
+    settings = get_settings()
+    top_k = top_k or settings.dense_top_k
 
-        settings = get_settings()
-        k = top_k or settings.dense_top_k
+    if top_k <= 0:
+        raise ValueError("top_k 必须大于 0")
 
-        if k <= 0:
-            raise ValueError("top_k 必须大于 0")
+    # 1. 初始化向量库
+    vectorstore = vectorstore or create_dense_vectorstore()
 
-        results = self._vector_store.similarity_search_with_score(
-            normalized_query,
-            k=k,
-            expr=expr,
+    # 2. 执行稠密向量检索
+    retrieved_docs = vectorstore.similarity_search_with_score(
+        query,
+        k=top_k,
+        expr=expr,
+    )
+
+    # 3. 统一返回结构
+    return [
+        DenseSearchResult(
+            doc_id=int(doc.metadata["doc_id"]),
+            title=str(doc.metadata["title"]),
+            hierarchy_path=str(doc.metadata["hierarchy_path"]),
+            content=doc.page_content,
+            score=float(score),
         )
-
-        return [
-            DenseSearchResult(
-                doc_id=int(document.metadata["doc_id"]),
-                title=str(document.metadata["title"]),
-                hierarchy_path=str(document.metadata["hierarchy_path"]),
-                content=document.page_content,
-                score=float(score),
-            )
-            for document, score in results
-        ]
+        for doc, score in retrieved_docs
+    ]

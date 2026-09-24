@@ -1,9 +1,9 @@
 from langchain_core.documents import Document
 
-from app.rag.retriever import DenseRetriever
+from app.rag.retriever import dense_search
 
 
-class FakeDenseVectorStore:
+class FakeVectorStore:
     def similarity_search_with_score(
         self,
         query: str,
@@ -30,10 +30,12 @@ class FakeDenseVectorStore:
         ]
 
 
-def test_dense_retriever_maps_milvus_results() -> None:
-    retriever = DenseRetriever(vector_store=FakeDenseVectorStore())
-
-    results = retriever.search("东风天龙仪表", top_k=3)
+def test_dense_search_maps_vectorstore_results() -> None:
+    results = dense_search(
+        "东风天龙仪表",
+        top_k=3,
+        vectorstore=FakeVectorStore(),
+    )
 
     assert len(results) == 1
     assert results[0].doc_id == 123
@@ -41,7 +43,5 @@ def test_dense_retriever_maps_milvus_results() -> None:
     assert results[0].score == 0.91
 
 
-def test_dense_retriever_skips_blank_query() -> None:
-    retriever = DenseRetriever(vector_store=FakeDenseVectorStore())
-
-    assert retriever.search("   ", top_k=3) == []
+def test_dense_search_skips_blank_query() -> None:
+    assert dense_search("   ", top_k=3, vectorstore=FakeVectorStore()) == []

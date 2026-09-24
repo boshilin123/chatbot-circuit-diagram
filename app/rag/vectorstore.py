@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from langchain_milvus import Milvus
 
 from app.core.config import get_settings
-from app.rag.embeddings import get_dense_embeddings
+from app.rag.embeddings import get_embeddings
 
 
 DENSE_INDEX_PARAMS = {
@@ -26,12 +26,8 @@ DENSE_SEARCH_PARAMS = {
 }
 
 
-def _document_for_milvus(document: Document) -> Document:
-    """Keep Milvus metadata simple and filter-friendly.
-
-    The loader may keep derived Python-only metadata such as a list of hierarchy
-    segments. Milvus only needs stable scalar metadata at the dense stage.
-    """
+def _prepare_document(document: Document) -> Document:
+    """整理写入 Milvus 的 Document metadata。"""
 
     metadata = {
         "doc_id": int(document.metadata["doc_id"]),
@@ -46,11 +42,17 @@ def _document_for_milvus(document: Document) -> Document:
     )
 
 
-def create_dense_vector_store(*, drop_old: bool = False) -> Milvus:
+def create_dense_vectorstore(*, drop_old: bool = False) -> Milvus:
+    """创建 Dense Retrieval 使用的 Milvus VectorStore。"""
+
     settings = get_settings()
 
-    return Milvus(
-        embedding_function=get_dense_embeddings(),
+    # 1. 初始化 Embedding 模型
+    embeddings = get_embeddings()
+
+    # 2. 创建 Milvus VectorStore
+    vectorstore = Milvus(
+        embedding_function=embeddings,
         collection_name=settings.milvus_dense_collection,
         collection_description="Vehicle circuit diagram dense retrieval collection",
         connection_args={"uri": settings.milvus_uri},
@@ -63,29 +65,34 @@ def create_dense_vector_store(*, drop_old: bool = False) -> Milvus:
         timeout=settings.milvus_timeout,
     )
 
+    return vectorstore
+
 
 def index_dense_documents(
-    documents: Sequence[Document],
+    docs: Sequence[Document],
     *,
     recreate: bool = False,
     batch_size: int = 256,
 ) -> int:
-    """Upsert LangChain Documents into the dense Milvus collection."""
+    """将 LangChain Documents 写入 Dense Collection。"""
 
     if batch_size <= 0:
         raise ValueError("batch_size 必须大于 0")
 
-    prepared = [_document_for_milvus(document) for document in documents]
-    if not prepared:
+    # 1. 整理写入 Milvus 的文档
+    docs = [_prepare_document(doc) for doc in docs]
+    if not docs:
         return 0
 
-    ids = [str(document.metadata["doc_id"]) for document in prepared]
-    vector_store = create_dense_vector_store(drop_old=recreate)
+    # 2. 使用文档 ID 作为稳定主键
+    ids = [str(doc.metadata["doc_id"]) for doc in docs]
 
-    vector_store.upsert(
+    # 3. 初始化向量库并写入数据
+    vectorstore = create_dense_vectorstore(drop_old=recreate)
+    vectorstore.upsert(
         ids=ids,
-        documents=prepared,
+        documents=docs,
         batch_size=batch_size,
     )
 
-    return len(prepared)
+    return len(docs)

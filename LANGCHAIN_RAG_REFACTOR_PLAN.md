@@ -48,6 +48,156 @@ db5f92c  feat: add LangChain document ingestion pipeline
 
 ---
 
+## 代码写作规范（以学习 PDF 示例为模板）
+
+后续代码除了遵守项目的模块化目录，还要尽量保持第 2～4 章示例代码的命名和书写习惯。
+
+### 1. 工程目录保持模块化
+
+课程示例通常为了教学集中写在 Notebook / 单文件中；本项目不照搬这种目录形式，而是继续按职责拆分：
+
+```text
+app/core/       配置、模型初始化、公共基础能力
+app/rag/        Loader、Embedding、Milvus、Retriever、Fusion、Reranker
+app/tools/      Agent Tool
+app/agents/     Agent 创建与调用
+app/graph/      LangGraph State / Node / Workflow
+app/schemas/    Pydantic / TypedDict 数据结构
+scripts/        索引、检索、评估等命令行入口
+tests/          独立测试
+```
+
+原则：**目录按工程化拆分，单个文件内部按课程示例风格书写。**
+
+### 2. 命名优先参考课程示例
+
+优先采用课程中已经反复出现、语义清楚的命名：
+
+```python
+model
+agent
+embeddings
+vectorstore
+retriever
+client
+collection_name
+system_prompt
+checkpointer
+runtime
+state
+docs
+retrieved_docs
+```
+
+核心函数优先采用：
+
+```python
+create_collection()
+dense_search()
+sparse_search()
+hybrid_search()
+reciprocal_rank_fusion()
+cross_encoder_rerank()
+retrieve_docs()
+search_knowledge_base()
+```
+
+数据结构使用 PascalCase：
+
+```python
+SearchIntent
+CircuitSearchState
+DenseSearchResult
+```
+
+不为了“工程感”创建没有必要的 Manager / Service / Handler 类。
+
+### 3. LangChain 写法优先与课程保持一致
+
+模型初始化优先：
+
+```python
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model(...)
+```
+
+Agent：
+
+```python
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model=model,
+    tools=[...],
+    system_prompt=system_prompt,
+)
+```
+
+Tool：
+
+```python
+@tool
+def search_knowledge_base(query: str):
+    """搜索车辆电路图资料库。"""
+    ...
+```
+
+Structured Output：
+
+```python
+class SearchIntent(BaseModel):
+    ...
+
+structured_model = model.with_structured_output(SearchIntent)
+```
+
+LangGraph / Runtime 阶段优先参考课程中的：
+
+```python
+AgentState
+ToolRuntime
+InMemorySaver
+Command
+```
+
+### 4. 代码内部采用课程式分步骤注释
+
+对于有明确流程的函数，采用课程示例中的编号方式：
+
+```python
+def hybrid_search(query: str):
+    # 1. 构建稠密检索请求
+    ...
+
+    # 2. 构建稀疏检索请求
+    ...
+
+    # 3. 使用 RRF 融合
+    ...
+
+    # 4. 返回结果
+    ...
+```
+
+注释说明“为什么做”，避免把每一行 Python 都翻译成中文。
+
+### 5. 不机械照抄课程
+
+以下情况允许与课程不同：
+
+- 课程 Notebook 中的全局变量，在正式项目中可放入独立配置模块；
+- 课程为了演示集中在一个文件的代码，本项目必须拆分模块；
+- 与本项目数据结构不符的 Text Splitter、PDF Loader 不强行加入；
+- 技术版本发生变化时，以当前官方 API 为准，但命名和组织尽量保持课程风格；
+- 测试注入、异常处理和类型约束可以比教学示例更完整。
+
+最终目标：
+
+> 看代码时能明显对应学习 PDF 中的知识和示例，同时又保持一个真实项目应有的目录结构与可维护性。
+
+---
+
 ## 1. 重构结论
 
 现有项目的核心业务价值需要保留：

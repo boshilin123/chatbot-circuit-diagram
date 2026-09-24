@@ -7,12 +7,13 @@ from app.core.config import get_settings
 
 
 @lru_cache
-def get_dense_embeddings() -> Embeddings:
-    """Create the local dense embedding model used by Milvus."""
+def get_embeddings() -> Embeddings:
+    """初始化稠密向量模型。"""
 
     settings = get_settings()
 
-    return HuggingFaceEmbeddings(
+    # 1. 创建 Embedding 模型
+    embeddings = HuggingFaceEmbeddings(
         model_name=settings.embedding_model,
         model_kwargs={
             "device": settings.embedding_device,
@@ -26,3 +27,6 @@ def get_dense_embeddings() -> Embeddings:
         },
         show_progress=False,
     )
+
+    # 2. 返回统一的 LangChain Embeddings 接口
+    return embeddings

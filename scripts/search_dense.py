@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from app.rag.retriever import DenseRetriever
+from app.rag.retriever import dense_search
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,8 +15,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
 
-    results = DenseRetriever().search(args.query, top_k=args.top_k)
+    # 1. 执行稠密检索
+    results = dense_search(args.query, top_k=args.top_k)
 
+    # 2. 打印 TopK
     for index, result in enumerate(results, start=1):
         print(
             f"[{index}] score={result.score:.4f} "
