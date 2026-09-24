@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     hybrid_top_k: int = 10
     rrf_k: int = 60
 
+    reranker_model: str = "Qwen/Qwen3-Reranker-0.6B"
+    reranker_device: str = "auto"
+    reranker_batch_size: int = 16
+    reranker_top_k: int = 5
+    reranker_min_score: float = 0.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

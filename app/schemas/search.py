@@ -25,3 +25,12 @@ class HybridSearchResult(SearchResult):
     score: float = Field(
         description="Fusion score returned by the Milvus ranker."
     )
+
+
+class RerankResult(SearchResult):
+    retrieval_score: float = Field(
+        description="Score produced by the retrieval stage before Cross-Encoder reranking."
+    )
+    score: float = Field(
+        description="Cross-Encoder relevance score."
+    )
