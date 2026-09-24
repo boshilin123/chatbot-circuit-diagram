@@ -28,7 +28,8 @@
 - ✅ Phase 6 已完成代码实现：Structured Output、Query Rewrite、Metadata Filter 与 Query Plan；
 - ✅ Phase 7 已完成代码实现：@tool、search_knowledge_base、get_document_by_id、create_agent 与 API 接入；
 - ✅ Phase 8 已完成代码实现：StateGraph、多轮候选收敛、interrupt/Command、Checkpointer、thread_id、返回上一步；
-- ▶️ **下一开发阶段：Phase 9 — Retrieval Evaluation。**
+- ✅ Phase 9 已完成代码实现：Benchmark、Hit@K / Recall / MRR、Latency、业务指标与报告生成；
+- ▶️ **下一阶段：统一运行验证与问题修复。**
 
 当前关键提交：
 
@@ -43,6 +44,7 @@ acfdaec  feat: add BM25 and hybrid RRF retrieval
 f0b7960  feat: add structured intent and query rewrite pipeline
 00af3aa  feat: add LangChain agent and retrieval tools
 3c9c6ae  feat: add LangGraph multi-turn clarification workflow
+695e455  feat: add retrieval evaluation framework
 ```
 
 ---
@@ -1401,33 +1403,86 @@ graph.ainvoke(
 
 ### Phase 9：评估系统
 
-使用 `keywords.txt` 建立 benchmark：
+**状态：代码实现已完成；真实指标统一放到最终验证阶段执行。**
 
-```json
-{"query": "三菱4K22电脑板", "expected_ids": [123, 456]}
-```
-
-比较：
+实际目录：
 
 ```text
-旧 Java Rule Search
-Dense
-BM25
-Hybrid
-Hybrid + Rerank
+eval/schema.py
+eval/metrics.py
+eval/benchmark.py
+eval/runners.py
+eval/report.py
+eval/evaluate.py
+eval/benchmark.jsonl
+scripts/build_eval_set.py
+scripts/suggest_eval_labels.py
+scripts/evaluate_retrieval.py
+tests/test_eval_metrics.py
+tests/test_eval_benchmark.py
 ```
 
-指标：
+当前 `data/keywords.txt` 中的 22 条真实查询已经原样写入：
+
+```text
+eval/benchmark.jsonl
+```
+
+Benchmark 结构：
+
+```json
+{
+  "query": "东风天龙仪表针脚图",
+  "expected_ids": [],
+  "source": "keywords.txt",
+  "label_status": "pending"
+}
+```
+
+注意：
+
+> `keywords.txt` 只有 Query，没有 Ground Truth 文档 ID。不能为了让指标“看起来完整”而自动伪造 expected_ids。最终验证前必须先确认真实正确文档 ID，再将 `label_status` 改为 `verified`。
+
+已经实现：
+
+- [x] `build_eval_set.py`：从 `keywords.txt` 构建 Benchmark；
+- [x] `suggest_eval_labels.py`：用轻量文本相似度辅助人工查找候选 ID；
+- [x] `hit_at_k()`；
+- [x] `recall_at_k()`；
+- [x] `mrr_at_k()`；
+- [x] P50 / P95 百分位；
+- [x] `evaluate_retriever()`；
+- [x] Dense 评估适配；
+- [x] BM25 评估适配；
+- [x] Hybrid RRF 评估适配；
+- [x] Hybrid + Cross-Encoder 评估适配；
+- [x] Markdown Report 生成；
+- [x] 最终结果 <=5 比例；
+- [x] 平均澄清轮数；
+- [x] 平均 LLM 调用次数数据结构；
+- [x] Metrics / Benchmark 单元测试；
+- [ ] **最终验证阶段执行**：Ground Truth 标注、四种 Retriever 实测、P50/P95、业务指标和最终报告。
+
+正式比较：
+
+```text
+Dense
+BM25
+Hybrid RRF
+Hybrid + Cross-Encoder Rerank
+```
+
+正式指标：
 
 - Hit@1
 - Hit@5
 - Recall@5
 - MRR@5
-- 最终结果 <= 5 比例
-- 平均澄清轮数
 - P50 Latency
 - P95 Latency
-- 单次请求 LLM 调用次数
+- 最终结果 <= 5 比例
+- 平均澄清轮数
+- 平均 LLM 调用次数
 
 ### Phase 10：测试和文档整理
 
