@@ -33,11 +33,15 @@
 - Qwen/Qwen3-Reranker-0.6B
 - cross_encoder_rerank()
 - retrieve_docs() 完整检索精排管线
+- Phase 6：Structured Output + Query Rewrite
+- SearchIntent + with_structured_output()
+- rewrite_query()
+- Metadata Filter
+- SearchQueryPlan
 
 尚未实现：
 
 - Reranker
-- Structured Output / Query Rewrite
 - Agent Tools
 - LangGraph 多轮澄清
 - Retrieval Benchmark
@@ -270,6 +274,40 @@ Final TopK
 - `app/rag/pipeline.py`：完整检索流程编排；
 - `scripts/search_rerank.py`：最终检索精排入口；
 - `tests/test_reranker.py`：Reranker 测试。
+
+运行验证继续统一放到最终验证阶段。
+
+## Query Understanding
+
+Phase 6 对齐课程中的 Structured Output 与 Query Rewrite 示例：
+
+```text
+User Query
+    ↓
+with_structured_output(SearchIntent)
+    ↓
+SearchIntent
+    ↓
+rewrite_query()
+    ↓
+rewritten_query
+    ↓
+build_metadata_filter()
+    ↓
+SearchQueryPlan
+```
+
+职责拆分：
+
+- `app/schemas/intent.py`：`SearchIntent`；
+- `app/schemas/query.py`：`SearchQueryPlan`；
+- `app/rag/intent_parser.py`：Structured Output 意图抽取；
+- `app/rag/query_rewriter.py`：Query Rewrite；
+- `app/rag/filters.py`：Milvus Metadata Filter；
+- `app/rag/query_pipeline.py`：查询准备流程；
+- `scripts/prepare_query.py`：查询优化预览入口。
+
+Query Rewrite 保留原始车型、ECU 和字母数字编码，不猜测未知型号。
 
 运行验证继续统一放到最终验证阶段。
 
