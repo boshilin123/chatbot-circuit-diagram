@@ -1,4 +1,16 @@
-# Maven
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+.env.*
+!.env.example
+
+# Maven / legacy Java
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -30,7 +42,7 @@ buildNumber.properties
 .DS_Store
 Thumbs.db
 
-# 其他
+# Other
 *.swp
 *.bak
 *~

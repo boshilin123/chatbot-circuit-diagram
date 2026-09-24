@@ -4,12 +4,13 @@ spring:
 
 # 服务器配置
 server:
-  port: ${PORT:8080}  # Railway会自动设置PORT环境变量
+  port: ${PORT:8080}
 
 # DeepSeek API 配置
+# API Key 必须通过环境变量提供，禁止提交真实密钥到仓库。
 deepseek:
   api:
-    key: ${DEEPSEEK_API_KEY:sk-3d715c01cbb74880a3f1fd667a6b82a1}
+    key: ${DEEPSEEK_API_KEY}
     url: ${DEEPSEEK_API_URL:https://api.deepseek.com/v1/chat/completions}
 
 # 日志配置
