@@ -20,8 +20,9 @@
 - ✅ 原始 CSV 与 `keywords.txt` 已迁移至 `data/`；
 - ✅ 已建立基础 pytest 健康检查测试；
 - ⏳ **待用户手动完成：在 DeepSeek 控制台吊销历史泄露的旧 Key，并生成新 Key；**
-- ⏳ **待本地验证：安装 Python 依赖、配置新 Key、运行 FastAPI 并完成真实模型请求；**
-- ▶️ **下一开发阶段：Phase 2 — CSV -> LangChain Document。**
+- ✅ Phase 2 已完成代码实现：CSV Loader、Document Schema、导入脚本与 Loader 测试；
+- ⏳ **所有运行验证统一放到最终验证阶段，不在各 Phase 中间打断开发；**
+- ▶️ **下一开发阶段：Phase 3 — Milvus + Dense Retrieval。**
 
 当前关键提交：
 
@@ -297,7 +298,7 @@ Milvus 使用 Docker Compose 在本机启动。
 ```text
 ID
 层级路径
-文件名称
+关联文件名称
 ```
 
 示例：
@@ -332,7 +333,7 @@ RecursiveCharacterTextSplitter
 Document(
     page_content=(
         "层级路径：电路图 整车电路图 商用车 东风 天龙 KL\n"
-        "文件名称：东风天龙KL整车仪表电路图"
+        "关联文件名称：东风天龙KL整车仪表电路图"
     ),
     metadata={
         "doc_id": 12345,
@@ -844,7 +845,7 @@ target/
 
 ### Phase 1：Python + FastAPI + LangChain 基础骨架
 
-**状态：代码骨架已完成；待本地安装依赖并使用新 DeepSeek Key 做端到端验证。**
+**状态：代码骨架已完成；运行验证统一放到最终验证阶段。**
 
 #### 工作
 
@@ -857,9 +858,7 @@ target/
 - [x] 建立 Pydantic Request / Response；
 - [x] 将现有前端迁移到 `frontend/` 并由 FastAPI 提供静态资源；
 - [x] 新增基础 `tests/test_health.py`；
-- [ ] **本地验证**：安装依赖后运行 pytest；
-- [ ] **本地验证**：使用新 DeepSeek Key 完成真实 `/api/chat` 调用；
-- [ ] **本地验证**：浏览器页面成功发送并显示最简单聊天回复。
+- [ ] **最终验证阶段执行**：pytest、真实 DeepSeek 调用和浏览器端到端测试。
 
 #### 验收
 
@@ -882,14 +881,19 @@ http://127.0.0.1:8000
 
 ### Phase 2：CSV -> LangChain Document
 
-**状态：下一开发阶段。**
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
 
-- [ ] 读取 `circuit-data.csv`；
-- [ ] 每行生成一个 Document；
-- [ ] metadata 保存 ID、title、hierarchy_path；
-- [ ] 生成统一 `search_text`；
-- [ ] 编写 loader 单元测试；
-- [ ] 验证文档数量与 CSV 数据一致。
+- [x] 读取 `data/circuit-data.csv`；
+- [x] 每行生成一个 LangChain Document；
+- [x] metadata 保存 `doc_id`、`title`、`hierarchy_path`；
+- [x] 额外保存 `hierarchy_segments` 和 `hierarchy_depth`，供后续 Facet / Metadata Filter 使用；
+- [x] 生成统一 `search_text`；
+- [x] 真实表头按 `ID / 层级路径 / 关联文件名称` 处理；
+- [x] 支持 UTF-8 BOM；
+- [x] 支持缺字段 / 非法 ID 等坏行记录，不因单行错误中断全部导入；
+- [x] 新增 `scripts/ingest.py --dry-run`；
+- [x] 编写独立 Loader 单元测试；
+- [ ] **最终验证阶段执行**：确认真实 CSV 总行数、有效 Document 数和异常行统计。
 
 #### 验收
 
