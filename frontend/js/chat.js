@@ -186,11 +186,15 @@ class ChatApp {
                 break;
                 
             case 'result':
-                // 最终结果
+                // 最终结果（支持 1～5 条文档）
                 this.appendMessage('bot', data.content);
-                this.appendResult(data.document);
-                // 保存完整的消息数据（包括文档）
-                this.saveMessageToSession('bot', data.content, 'result', { document: data.document });
+                const resultDocuments = data.documents || (data.document ? [data.document] : []);
+                resultDocuments.forEach(document => this.appendResult(document));
+                // 保存完整的消息数据
+                this.saveMessageToSession('bot', data.content, 'result', {
+                    document: data.document || resultDocuments[0] || null,
+                    documents: resultDocuments
+                });
                 break;
                 
             default:
@@ -517,9 +521,10 @@ class ChatApp {
         if (type === 'options' && data && data.options) {
             // 恢复选项列表
             this.appendOptionsFromHistory(data.options);
-        } else if (type === 'result' && data && data.document) {
-            // 恢复结果文档
-            this.appendResultFromHistory(data.document);
+        } else if (type === 'result' && data) {
+            // 恢复 1～5 条结果文档
+            const resultDocuments = data.documents || (data.document ? [data.document] : []);
+            resultDocuments.forEach(document => this.appendResultFromHistory(document));
         }
     }
     

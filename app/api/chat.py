@@ -2,11 +2,23 @@ import logging
 
 from fastapi import APIRouter
 
-from app.agents.circuit_agent import run_circuit_agent
+from app.graph.service import resume_search_workflow, run_search_workflow
 from app.schemas.chat import ApiResult, ChatRequest, ChatResponseData, SelectRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _to_chat_response(response) -> ChatResponseData:
+    documents = response.documents or []
+
+    return ChatResponseData(
+        type=response.type,
+        content=response.content,
+        options=response.options,
+        document=documents[0] if documents else None,
+        documents=documents or None,
+    )
 
 
 @router.post("/chat", response_model=ApiResult)
@@ -16,26 +28,35 @@ async def chat(request: ChatRequest) -> ApiResult:
         return ApiResult.error("消息内容不能为空")
 
     try:
-        # Phase 7：由 LangChain Agent 决定是否调用检索工具
-        content = await run_circuit_agent(message)
-
-        if not content:
-            return ApiResult.error("Agent 未返回有效内容")
-
+        # Phase 8：Web 主流程由 LangGraph 接管
+        response = await run_search_workflow(
+            request.sessionId,
+            message,
+        )
         return ApiResult.success(
-            ChatResponseData(
-                type="text",
-                content=content,
-            )
+            _to_chat_response(response)
         )
     except RuntimeError as exc:
-        logger.warning("Agent configuration error: %s", exc)
+        logger.warning("Graph configuration error: %s", exc)
         return ApiResult.error(str(exc))
     except Exception:
-        logger.exception("LangChain agent invocation failed")
-        return ApiResult.error("Agent 调用失败，请检查本地配置和依赖服务")
+        logger.exception("LangGraph invocation failed")
+        return ApiResult.error("检索工作流执行失败，请检查本地配置和依赖服务")
 
 
 @router.post("/select", response_model=ApiResult)
-async def select(_: SelectRequest) -> ApiResult:
-    return ApiResult.error("多轮选择题将在 LangGraph 阶段启用")
+async def select(request: SelectRequest) -> ApiResult:
+    try:
+        # Command(resume=optionValue) 恢复 interrupt
+        response = await resume_search_workflow(
+            request.sessionId,
+            request.optionValue,
+        )
+        return ApiResult.success(
+            _to_chat_response(response)
+        )
+    except ValueError as exc:
+        return ApiResult.error(str(exc))
+    except Exception:
+        logger.exception("LangGraph resume failed")
+        return ApiResult.error("选择处理失败，请重新发起查询")

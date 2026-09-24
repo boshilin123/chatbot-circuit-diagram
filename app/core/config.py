@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     reranker_top_k: int = 5
     reranker_min_score: float = 0.0
 
+    graph_candidate_k: int = 30
+    graph_max_results: int = 5
+    graph_max_options: int = 5
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 class SearchIntent(BaseModel):
     """从用户问题中抽取的车辆电路图检索意图。"""
 
+    is_search_request: bool = Field(
+        default=True,
+        description="用户是否正在查找车辆电路图资料。普通问候、闲聊、能力介绍返回 false。",
+    )
     brand: str | None = Field(
         default=None,
         description="车辆或工程机械品牌，例如东风、三一、徐工。",

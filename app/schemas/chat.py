@@ -10,7 +10,7 @@ class ChatRequest(BaseModel):
 
 class SelectRequest(BaseModel):
     sessionId: str = Field(min_length=1)
-    optionId: str
+    optionId: str | int
     optionValue: str
 
 
@@ -19,6 +19,7 @@ class ChatResponseData(BaseModel):
     content: str
     options: list[dict] | None = None
     document: dict | None = None
+    documents: list[dict] | None = None
 
 
 class ApiResult(BaseModel):
