@@ -24,7 +24,8 @@
 - ⏳ **所有运行验证统一放到最终验证阶段，不在各 Phase 中间打断开发；**
 - ✅ Phase 3 已完成代码实现：本地 Embedding、Milvus Standalone、Dense VectorStore 与 Dense Retriever；
 - ✅ Phase 4 已完成代码实现：Milvus BM25、Sparse Search、Dense + Sparse Hybrid Search、RRF；
-- ▶️ **下一开发阶段：Phase 5 — Cross-Encoder Reranker。**
+- ✅ Phase 5 已完成代码实现：Qwen3 Cross-Encoder Reranker 与完整 Retrieval Pipeline；
+- ▶️ **下一开发阶段：Phase 6 — Structured Output + Query Rewrite。**
 
 当前关键提交：
 
@@ -35,6 +36,7 @@ db5f92c  feat: add LangChain document ingestion pipeline
 1bfa1f2  feat: add Milvus dense retrieval layer
 eefb0fa  refactor: align code style with LangChain course examples
 acfdaec  feat: add BM25 and hybrid RRF retrieval
+5b74729  feat: add Cross-Encoder reranking pipeline
 ```
 
 ---
@@ -1167,11 +1169,49 @@ KC
 
 ### Phase 5：Reranker
 
-- [ ] Hybrid 召回 Top20～30；
-- [ ] Cross-Encoder 重新打分；
-- [ ] 输出重新排序后的 TopK；
-- [ ] 记录耗时；
-- [ ] 对比 Hybrid 与 Hybrid + Rerank。
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/rag/reranker.py
+app/rag/pipeline.py
+app/schemas/search.py
+scripts/search_rerank.py
+tests/test_reranker.py
+```
+
+实现风格对齐课程第 4 章 Cross-Encoder 示例：
+
+```python
+model = CrossEncoder(
+    "Qwen/Qwen3-Reranker-0.6B",
+    device="cuda" if torch.cuda.is_available() else "cpu",
+)
+
+scores = model.predict(
+    [(query, doc.content) for doc in docs]
+)
+
+final_docs = cross_encoder_rerank(
+    query,
+    docs,
+    top_k,
+)
+```
+
+- [x] Reranker 使用课程示例中的 `Qwen/Qwen3-Reranker-0.6B`；
+- [x] 使用 `sentence_transformers.CrossEncoder`；
+- [x] 自动选择 CUDA / CPU；
+- [x] 实现 `cross_encoder_rerank(query, docs, top_k)`；
+- [x] Query 与 Candidate Document 组成 Pair 进行精确打分；
+- [x] 保存 Hybrid 阶段原始 `retrieval_score`；
+- [x] Cross-Encoder 得分写入最终 `score`；
+- [x] 按课程示例过滤非正相关结果；
+- [x] 新增独立 `retrieve_docs()`，完成 Dense + BM25 + RRF + Cross-Encoder 编排；
+- [x] 新增 `scripts/search_rerank.py`；
+- [x] 新增 Reranker 单元测试；
+- [ ] **最终验证阶段执行**：模型下载、GPU/CPU 设备选择、Hybrid Top20 精排、耗时统计与 pytest。
 
 ### Phase 6：Structured Output + Query Rewrite
 
