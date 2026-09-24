@@ -4,7 +4,35 @@
 > 目标：将现有 Java/Spring Boot + DeepSeek 的车辆电路图资料导航系统，重构为一个可在本地完整运行、可学习、可测试、可用于 AI/Agent 项目展示的 LangChain 1.x + LangGraph + Hybrid RAG 项目。  
 > 当前阶段要求：**只要求本地运行，不部署公网。**
 
+## 当前实施状态（2026-09-24）
+
+当前仓库已经正式进入重构阶段：
+
+- ✅ 已创建 `legacy-java` 分支保存旧版 Java / Spring Boot 实现；
+- ✅ `main` 已清理 `.idea/`、`target/` 和重复 CSV；
+- ✅ `main` 已移除旧 Java 后端与 Maven / Railway 构建文件；
+- ✅ 当前分支和 `legacy-java` 顶端均已移除硬编码 DeepSeek Key；
+- ✅ 已新增 `.env.example`，真实 Key 只允许保存在本地 `.env`；
+- ✅ 已初始化 Python 3.11/3.12 + FastAPI + Pydantic 项目骨架；
+- ✅ 已通过 `langchain-deepseek` 接入 `ChatDeepSeek`；
+- ✅ 已建立 `GET /api/health` 和基础 `POST /api/chat`；
+- ✅ 旧 HTML / CSS / JavaScript 前端已迁移至 `frontend/`；
+- ✅ 原始 CSV 与 `keywords.txt` 已迁移至 `data/`；
+- ✅ 已建立基础 pytest 健康检查测试；
+- ⏳ **待用户手动完成：在 DeepSeek 控制台吊销历史泄露的旧 Key，并生成新 Key；**
+- ⏳ **待本地验证：安装 Python 依赖、配置新 Key、运行 FastAPI 并完成真实模型请求；**
+- ▶️ **下一开发阶段：Phase 2 — CSV -> LangChain Document。**
+
+当前关键提交：
+
+```text
+5030b2b  chore: complete phase 0 repository cleanup
+cb8d54f  refactor: start Python FastAPI LangChain migration
+```
+
 ---
+
+
 
 ## 1. 重构结论
 
@@ -48,7 +76,9 @@ Fusion / Rerank
 
 ## 2. 当前项目现状
 
-当前仓库主要技术栈：
+### 2.1 旧版（`legacy-java`）
+
+旧版主要技术栈：
 
 - Java 21
 - Spring Boot
@@ -63,6 +93,23 @@ Fusion / Rerank
 - 自定义 ConversationManager
 - JVM 内存缓存
 - JVM 内存限流
+
+### 2.2 当前主分支（`main`）
+
+当前已经迁移为：
+
+- Python 3.11 / 3.12
+- FastAPI
+- Pydantic / pydantic-settings
+- LangChain 1.x
+- `langchain-deepseek`
+- `ChatDeepSeek`
+- HTML / CSS / 原生 JavaScript（暂时保留）
+- `data/circuit-data.csv`
+- `data/keywords.txt`
+- pytest 基础测试
+
+当前尚未接入 Milvus / Hybrid RAG / LangGraph，这些按后续 Phase 顺序逐步加入。
 
 现有项目中值得保留的设计思想：
 
@@ -767,18 +814,22 @@ chatbot-circuit-diagram/
 
 ### Phase 0：仓库清理与安全处理
 
+**状态：仓库侧已完成；DeepSeek Key 轮换需用户手动完成。**
+
 #### 工作
 
-- [ ] 在 DeepSeek 控制台废弃当前已经暴露的 API Key；
-- [ ] 生成新 Key；
-- [ ] 新 Key 只保存在本地 `.env`；
-- [ ] 新增 `.env.example`；
-- [ ] 确保 `.env` 加入 `.gitignore`；
-- [ ] 创建 `legacy-java` 分支保留旧实现；
-- [ ] 从主分支移除 `target/`；
-- [ ] 从主分支移除 `.idea/`；
-- [ ] 删除重复 CSV，仅保留一个标准数据文件；
-- [ ] 修复 README 中不存在文件的链接。
+- [ ] **用户操作**：在 DeepSeek 控制台废弃已经暴露的旧 API Key；
+- [ ] **用户操作**：生成新的 DeepSeek API Key；
+- [x] 新 Key 设计为只保存在本地 `.env`；
+- [x] 新增 `.env.example`；
+- [x] 确保 `.env` 加入 `.gitignore`；
+- [x] 创建 `legacy-java` 分支保留旧实现；
+- [x] 从主分支移除 `target/`；
+- [x] 从主分支移除 `.idea/`；
+- [x] 删除重复 CSV，仅保留 `data/circuit-data.csv`；
+- [x] 旧 Java 后端与 Maven / Railway 构建文件退出 `main`；
+- [x] 当前 `main` 与 `legacy-java` 顶端均不再包含真实 API Key；
+- [x] README 已更新为新架构迁移说明。
 
 #### 验收
 
@@ -793,16 +844,22 @@ target/
 
 ### Phase 1：Python + FastAPI + LangChain 基础骨架
 
+**状态：代码骨架已完成；待本地安装依赖并使用新 DeepSeek Key 做端到端验证。**
+
 #### 工作
 
-- [ ] 初始化 Python 项目；
-- [ ] 创建 FastAPI；
-- [ ] 创建 `/api/chat`；
-- [ ] 使用 `.env` 加载 DeepSeek Key；
-- [ ] 通过 LangChain 调用 DeepSeek；
-- [ ] 建立 Pydantic Request / Response；
-- [ ] 将现有前端接入 FastAPI；
-- [ ] 完成最简单聊天请求。
+- [x] 初始化 Python 项目与 `pyproject.toml`；
+- [x] 创建 FastAPI；
+- [x] 创建 `GET /api/health`；
+- [x] 创建基础 `POST /api/chat`；
+- [x] 使用 `.env` / `pydantic-settings` 加载 DeepSeek 配置；
+- [x] 使用 LangChain `ChatDeepSeek`，不再手写 DeepSeek HTTP 请求；
+- [x] 建立 Pydantic Request / Response；
+- [x] 将现有前端迁移到 `frontend/` 并由 FastAPI 提供静态资源；
+- [x] 新增基础 `tests/test_health.py`；
+- [ ] **本地验证**：安装依赖后运行 pytest；
+- [ ] **本地验证**：使用新 DeepSeek Key 完成真实 `/api/chat` 调用；
+- [ ] **本地验证**：浏览器页面成功发送并显示最简单聊天回复。
 
 #### 验收
 
@@ -816,9 +873,16 @@ uvicorn app.main:app --reload
 http://127.0.0.1:8000
 ```
 
-可以正常发送消息并收到模型回复。
+完成以下验证后 Phase 1 才正式关闭：
+
+- `/api/health` 返回 `status=ok`；
+- pytest 通过；
+- 浏览器可打开现有聊天页面；
+- 配置新 DeepSeek Key 后，`/api/chat` 能通过 LangChain 返回真实模型回复。
 
 ### Phase 2：CSV -> LangChain Document
+
+**状态：下一开发阶段。**
 
 - [ ] 读取 `circuit-data.csv`；
 - [ ] 每行生成一个 Document；
@@ -989,7 +1053,7 @@ source .venv/bin/activate
 ### 3. 安装依赖
 
 ```bash
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 ### 4. 配置环境变量
