@@ -29,10 +29,13 @@
 - sparse_search / hybrid_search
 - AnnSearchRequest + RRFRanker(k=60)
 - 独立 reciprocal_rank_fusion
+- Phase 5：Cross-Encoder Reranker
+- Qwen/Qwen3-Reranker-0.6B
+- cross_encoder_rerank()
+- retrieve_docs() 完整检索精排管线
 
 尚未实现：
 
-- Reranker
 - Reranker
 - Structured Output / Query Rewrite
 - Agent Tools
@@ -232,6 +235,43 @@ BM25BuiltInFunction(
 ```
 
 运行验证统一留到最终验证阶段。
+
+## Cross-Encoder Reranker
+
+Phase 5 对齐课程第 4 章示例，使用：
+
+```python
+from sentence_transformers import CrossEncoder
+
+model = CrossEncoder(
+    "Qwen/Qwen3-Reranker-0.6B",
+    device="cuda" if torch.cuda.is_available() else "cpu",
+)
+```
+
+完整检索链路现在为：
+
+```text
+Query
+  ↓
+Dense + BM25
+  ↓
+RRF Hybrid TopK
+  ↓
+cross_encoder_rerank()
+  ↓
+Final TopK
+```
+
+职责拆分：
+
+- `app/rag/hybrid_search.py`：Dense + BM25 + RRF 召回；
+- `app/rag/reranker.py`：Cross-Encoder 精排；
+- `app/rag/pipeline.py`：完整检索流程编排；
+- `scripts/search_rerank.py`：最终检索精排入口；
+- `tests/test_reranker.py`：Reranker 测试。
+
+运行验证继续统一放到最终验证阶段。
 
 ## 旧版
 
