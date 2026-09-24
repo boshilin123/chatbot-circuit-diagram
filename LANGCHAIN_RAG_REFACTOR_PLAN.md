@@ -29,11 +29,22 @@
 ```text
 5030b2b  chore: complete phase 0 repository cleanup
 cb8d54f  refactor: start Python FastAPI LangChain migration
+db5f92c  feat: add LangChain document ingestion pipeline
 ```
 
 ---
 
+## 验证策略
 
+从当前阶段开始，采用 **先完成模块开发，最后统一验证** 的方式：
+
+- 各 Phase 正常编写测试代码、dry-run、health check 等验证工具；
+- 中间阶段不要求反复安装、启动和人工验证；
+- 不为临时验证破坏正式目录结构，也不把测试逻辑塞进业务代码；
+- 等核心链路实现完成后，再统一执行 pytest、FastAPI、Milvus、RAG、Agent、LangGraph 与浏览器端到端验证；
+- 最终验证发现问题时，按模块边界回到对应组件修复。
+
+---
 
 ## 1. 重构结论
 
@@ -882,6 +893,16 @@ http://127.0.0.1:8000
 ### Phase 2：CSV -> LangChain Document
 
 **状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/core/paths.py
+app/schemas/document.py
+app/rag/loader.py
+scripts/ingest.py
+tests/test_loader.py
+```
 
 - [x] 读取 `data/circuit-data.csv`；
 - [x] 每行生成一个 LangChain Document；
