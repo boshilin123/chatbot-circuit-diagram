@@ -50,11 +50,15 @@
 - 3～5 个真实 Facet 选项
 - 返回上一步
 - 最终结果 <= 5
+- Phase 9：Retrieval Evaluation
+- Hit@1 / Hit@5 / Recall@5 / MRR@5
+- P50 / P95 Latency
+- Benchmark JSONL + Markdown Report
 
 尚未实现：
 
 - Reranker
-- Retrieval Benchmark
+
 
 完整实施路线见 [`LANGCHAIN_RAG_REFACTOR_PLAN.md`](./LANGCHAIN_RAG_REFACTOR_PLAN.md)。
 
@@ -418,6 +422,52 @@ Facet 优先从真实 `hierarchy_path` 中生成，不由 LLM 编造。
 前端已支持一次渲染 1～5 条最终资料。
 
 运行验证继续统一放到最终验证阶段。
+
+## Retrieval Evaluation
+
+Phase 9 已建立独立评估层：
+
+```text
+data/keywords.txt
+      ↓
+eval/benchmark.jsonl
+      ↓
+人工确认 expected_ids
+      ↓
+Dense / BM25 / Hybrid RRF / Hybrid + Rerank
+      ↓
+Hit@1 / Hit@5 / Recall@5 / MRR@5
+      ↓
+P50 / P95 Latency
+      ↓
+eval/retrieval_report.md
+```
+
+当前 22 条查询已写入 Benchmark，但 `expected_ids` 暂时为空，因为原始 `keywords.txt` 没有 Ground Truth。
+
+辅助标注：
+
+```bash
+python scripts/suggest_eval_labels.py --top-k 10
+```
+
+确认真实 ID 后，将对应样本改为：
+
+```json
+{
+  "query": "...",
+  "expected_ids": [123],
+  "label_status": "verified"
+}
+```
+
+然后最终验证阶段执行：
+
+```bash
+python scripts/evaluate_retrieval.py
+```
+
+评估代码全部位于 `eval/`，不污染在线 `app/rag/`。
 
 ## 旧版
 
