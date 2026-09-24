@@ -23,7 +23,8 @@
 - ✅ Phase 2 已完成代码实现：CSV Loader、Document Schema、导入脚本与 Loader 测试；
 - ⏳ **所有运行验证统一放到最终验证阶段，不在各 Phase 中间打断开发；**
 - ✅ Phase 3 已完成代码实现：本地 Embedding、Milvus Standalone、Dense VectorStore 与 Dense Retriever；
-- ▶️ **下一开发阶段：Phase 4 — BM25 + Hybrid Retrieval。**
+- ✅ Phase 4 已完成代码实现：Milvus BM25、Sparse Search、Dense + Sparse Hybrid Search、RRF；
+- ▶️ **下一开发阶段：Phase 5 — Cross-Encoder Reranker。**
 
 当前关键提交：
 
@@ -32,6 +33,8 @@
 cb8d54f  refactor: start Python FastAPI LangChain migration
 db5f92c  feat: add LangChain document ingestion pipeline
 1bfa1f2  feat: add Milvus dense retrieval layer
+eefb0fa  refactor: align code style with LangChain course examples
+acfdaec  feat: add BM25 and hybrid RRF retrieval
 ```
 
 ---
@@ -1110,12 +1113,47 @@ docker-compose.yml
 
 ### Phase 4：BM25 + Hybrid Retrieval
 
-- [ ] 启用 Milvus BM25；
-- [ ] 同一文档建立 Dense / Sparse 检索；
-- [ ] Dense TopK；
-- [ ] BM25 TopK；
-- [ ] Hybrid Fusion；
-- [ ] 保留每一路检索分数和来源。
+**状态：代码实现已完成；运行验证统一放到最终验证阶段。**
+
+实际目录：
+
+```text
+app/rag/hybrid_vectorstore.py
+app/rag/hybrid_search.py
+app/rag/fusion.py
+app/schemas/search.py
+scripts/index_hybrid.py
+scripts/search_sparse.py
+scripts/search_hybrid.py
+tests/test_hybrid_search.py
+tests/test_fusion.py
+```
+
+实现风格对齐课程第 4 章 Milvus 示例：
+
+```python
+dense_search(query)
+sparse_search(query)
+hybrid_search(query, ranker)
+reciprocal_rank_fusion(ranked_lists, k=60)
+
+ranker = RRFRanker(k=60)
+```
+
+- [x] 使用 `BM25BuiltInFunction` 启用 Milvus 内置 BM25；
+- [x] Analyzer 使用课程示例中的 `{"type": "chinese"}`；
+- [x] Hybrid Collection 同时建立 `dense / sparse` 字段；
+- [x] Dense 使用 COSINE；
+- [x] Sparse 使用 BM25；
+- [x] 实现 `sparse_search()`；
+- [x] 使用 `AnnSearchRequest` 构建 Dense / Sparse 双路请求；
+- [x] 实现 `hybrid_search(query, ranker)`；
+- [x] 默认使用 `RRFRanker(k=60)`；
+- [x] 独立实现课程第 2 节中的 `reciprocal_rank_fusion()`，方便后续 Benchmark 对比；
+- [x] 支持 `filter_query`，为后续 Metadata Filter / LangGraph 多轮筛选预留；
+- [x] 新增 Hybrid 索引、Sparse 检索、Hybrid 检索命令行脚本；
+- [x] 新增 Sparse / RRF 单元测试；
+- [ ] **最终验证阶段执行**：全量 Hybrid Collection 写入、BM25 精确型号召回、RRF Hybrid Search 与 pytest。
 
 重点验证：
 
