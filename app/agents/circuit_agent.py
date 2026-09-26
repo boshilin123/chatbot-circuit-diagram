@@ -9,7 +9,6 @@ from app.core.model import get_chat_model
 from app.tools.get_document import get_document_by_id
 from app.tools.search_knowledge_base import search_knowledge_base
 
-
 SYSTEM_PROMPT = """你是车辆电路图资料导航助手。
 
 你的主要任务是帮助用户查找车辆、工程机械、发动机、ECU、电脑板、仪表、

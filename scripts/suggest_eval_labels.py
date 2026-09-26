@@ -3,10 +3,9 @@ from __future__ import annotations
 import argparse
 import re
 
-from app.rag.loader import load_circuit_documents
 from app.core.paths import PROJECT_ROOT
+from app.rag.loader import load_circuit_documents
 from eval.benchmark import load_benchmark
-
 
 DEFAULT_BENCHMARK = PROJECT_ROOT / "eval" / "benchmark.jsonl"
 

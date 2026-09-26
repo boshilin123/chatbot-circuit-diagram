@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import csv
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping
 
 from langchain_core.documents import Document
 
 from app.core.paths import DEFAULT_CIRCUIT_DATA_PATH
 from app.schemas.document import CircuitDocumentRecord
-
 
 ID_COLUMN = "ID"
 HIERARCHY_COLUMN = "层级路径"

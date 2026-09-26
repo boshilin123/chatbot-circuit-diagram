@@ -222,6 +222,9 @@ body {
     padding: 15px 18px;
     line-height: 1.6;
     color: #333;
+    /* 保留后端返回的换行与缩进，避免多行答案被压成一行 */
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 /* 机器人消息 */
@@ -408,16 +411,68 @@ body {
     font-size: 16px;
 }
 
+/* 结果卡片：序号 + 文件名主标题 + 标签行 */
+.result-container .result-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px dashed rgba(59, 130, 246, 0.35);
+}
+
+.result-container .result-index {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 24px;
+    text-align: center;
+}
+
+.result-container .result-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1f3a68;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.result-container .result-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .result-container .result-item {
-    margin: 8px 0;
+    margin: 0;
     color: #555;
     font-size: 14px;
     line-height: 1.5;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
 }
 
 .result-container .result-label {
+    flex: 0 0 68px;
     font-weight: 600;
     color: #333;
+    white-space: nowrap;
+}
+
+.result-container .result-value {
+    color: #555;
+    word-break: break-word;
+}
+
+.result-container .result-path {
+    color: #4b5563;
+    letter-spacing: 0.2px;
 }
 
 /* 输入区域 */

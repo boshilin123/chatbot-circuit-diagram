@@ -5,7 +5,6 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.model import get_chat_model
 from app.graph.state import CircuitSearchState
 
-
 SYSTEM_PROMPT = """你是车辆电路图资料导航助手。
 当前用户不是在执行资料检索，请简洁回答普通问候、能力介绍或闲聊。
 不要在没有检索资料库的情况下编造文档 ID、车型资料或电路图结果。

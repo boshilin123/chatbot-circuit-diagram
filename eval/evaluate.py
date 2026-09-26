@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
-
 from pymilvus import RRFRanker
 
 from app.core.config import get_settings

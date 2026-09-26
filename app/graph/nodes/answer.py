@@ -15,16 +15,11 @@ def final_answer(state: CircuitSearchState) -> dict:
         [],
     )[:settings.graph_max_results]
 
-    # 2. 输出 ID + 标题，具体卡片由前端渲染
-    lines = [
-        f"{index}. [ID:{doc['doc_id']}] {doc['title']}"
-        for index, doc in enumerate(final_results, start=1)
-    ]
+    if not final_results:
+        return no_results(state)
 
-    content = (
-        f"找到 {len(final_results)} 条最相关资料：\n"
-        + "\n".join(lines)
-    )
+    # 2. 正文只给一句可读的结论，具体条目由前端卡片分级渲染
+    content = f"已为你找到 {len(final_results)} 条相关资料（按相关度排序）："
 
     return {
         "final_results": final_results,

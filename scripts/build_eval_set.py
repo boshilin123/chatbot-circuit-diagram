@@ -7,7 +7,6 @@ from app.core.paths import DEFAULT_KEYWORDS_PATH, PROJECT_ROOT
 from eval.benchmark import save_benchmark
 from eval.schema import EvalCase
 
-
 DEFAULT_OUTPUT = PROJECT_ROOT / "eval" / "benchmark.jsonl"
 
 

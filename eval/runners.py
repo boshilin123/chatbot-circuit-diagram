@@ -7,7 +7,6 @@ from app.schemas.search import SearchResult
 from eval.metrics import hit_at_k, mrr_at_k, recall_at_k
 from eval.schema import EvalCase, RetrievalEvalRecord
 
-
 Retriever = Callable[
     [str, int],
     Sequence[SearchResult],

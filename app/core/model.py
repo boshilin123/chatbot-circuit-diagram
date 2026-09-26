@@ -12,7 +12,10 @@ def get_chat_model() -> BaseChatModel:
 
     settings = get_settings()
 
-    if settings.deepseek_api_key is None:
+    if (
+        settings.deepseek_api_key is None
+        or not settings.deepseek_api_key.get_secret_value().strip()
+    ):
         raise RuntimeError(
             "DEEPSEEK_API_KEY is not configured. Copy .env.example to .env "
             "and set a newly generated key."
@@ -23,6 +26,7 @@ def get_chat_model() -> BaseChatModel:
         model=settings.deepseek_model,
         model_provider="deepseek",
         api_key=settings.deepseek_api_key.get_secret_value(),
+        base_url=settings.deepseek_api_base,
         temperature=0.1,
         timeout=30,
         max_retries=2,

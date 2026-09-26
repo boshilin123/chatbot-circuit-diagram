@@ -9,7 +9,6 @@ from eval.evaluate import build_retrievers
 from eval.report import render_markdown_report, summarize_records
 from eval.runners import evaluate_retriever
 
-
 DEFAULT_BENCHMARK = PROJECT_ROOT / "eval" / "benchmark.jsonl"
 DEFAULT_REPORT = PROJECT_ROOT / "eval" / "retrieval_report.md"
 

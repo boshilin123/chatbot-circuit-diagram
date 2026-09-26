@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.schemas.intent import SearchIntent
 
-
 FILTER_FIELDS = (
     "brand",
     "model",

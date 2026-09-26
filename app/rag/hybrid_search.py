@@ -8,7 +8,6 @@ from app.core.config import get_settings
 from app.rag.embeddings import get_embeddings
 from app.schemas.search import HybridSearchResult, SparseSearchResult
 
-
 OUTPUT_FIELDS = [
     "text",
     "doc_id",
@@ -32,7 +31,7 @@ def get_milvus_client() -> MilvusClient:
 
 def _parse_results(
     res: Any,
-    result_type: type[SparseSearchResult] | type[HybridSearchResult],
+    result_type: type[SparseSearchResult | HybridSearchResult],
 ) -> list[SparseSearchResult] | list[HybridSearchResult]:
     if not res:
         return []

@@ -8,7 +8,6 @@ from langchain_milvus import BM25BuiltInFunction, Milvus
 from app.core.config import get_settings
 from app.rag.embeddings import get_embeddings
 
-
 DENSE_INDEX_PARAMS = {
     "index_type": "HNSW",
     "metric_type": "COSINE",
@@ -79,7 +78,6 @@ def create_hybrid_vectorstore(*, drop_old: bool = False) -> Milvus:
         drop_old=drop_old,
         auto_id=False,
         enable_dynamic_field=True,
-        timeout=settings.milvus_timeout,
     )
 
     return vectorstore
@@ -106,10 +104,11 @@ def index_hybrid_documents(
 
     # 3. 写入 Hybrid Collection
     vectorstore = create_hybrid_vectorstore(drop_old=recreate)
-    vectorstore.upsert(
-        ids=ids,
-        documents=docs,
-        batch_size=batch_size,
+    write_documents = (
+        vectorstore.upsert
+        if vectorstore.client.has_collection(vectorstore.collection_name)
+        else vectorstore.add_documents
     )
+    write_documents(ids=ids, documents=docs, batch_size=batch_size)
 
     return len(docs)

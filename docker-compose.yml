@@ -22,18 +22,14 @@ services:
 
   minio:
     container_name: circuit-milvus-minio
-    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-    command: minio server /minio_data --console-address ":9001"
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - ./volumes/minio:/minio_data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      - ./volumes/minio:/bitnami/minio/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3

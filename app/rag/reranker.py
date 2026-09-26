@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import Protocol, Sequence
+from typing import Protocol
 
 import torch
 from sentence_transformers import CrossEncoder

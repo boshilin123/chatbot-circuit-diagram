@@ -7,6 +7,9 @@ from langgraph.types import interrupt
 
 from app.graph.state import CircuitSearchState
 
+# "返回上一步"的保留选项值，facets 生成它、clarify 消费它、service 识别它
+BACK_OPTION_VALUE = "__back__"
+
 
 def apply_selection(
     state: CircuitSearchState,
@@ -17,7 +20,7 @@ def apply_selection(
     history = deepcopy(state.get("candidate_history", []))
 
     # 1. 返回上一步：恢复选择前的候选集合和 Facet 状态
-    if option_value == "__back__":
+    if option_value == BACK_OPTION_VALUE:
         if not history:
             raise ValueError("当前没有可以返回的上一步")
 

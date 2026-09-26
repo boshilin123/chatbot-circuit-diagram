@@ -189,7 +189,7 @@ class ChatApp {
                 // 最终结果（支持 1～5 条文档）
                 this.appendMessage('bot', data.content);
                 const resultDocuments = data.documents || (data.document ? [data.document] : []);
-                resultDocuments.forEach(document => this.appendResult(document));
+                resultDocuments.forEach((doc, index) => this.appendResult(doc, index + 1));
                 // 保存完整的消息数据
                 this.saveMessageToSession('bot', data.content, 'result', {
                     document: data.document || resultDocuments[0] || null,
@@ -524,12 +524,13 @@ class ChatApp {
         } else if (type === 'result' && data) {
             // 恢复 1～5 条结果文档
             const resultDocuments = data.documents || (data.document ? [data.document] : []);
-            resultDocuments.forEach(document => this.appendResultFromHistory(document));
+            resultDocuments.forEach((doc, index) => this.appendResultFromHistory(doc, index + 1));
         }
     }
     
     /**
      * 从历史记录恢复选项列表
+     * 历史里的选项同样可点击改选：后端会按选项值回溯到对应的澄清轮次重新分支
      */
     appendOptionsFromHistory(options) {
         const optionsDiv = document.createElement('div');
@@ -542,14 +543,11 @@ class ChatApp {
             button.className = 'option-button';
             const letter = letters[index] || (index + 1);
             button.textContent = `${letter}. ${option.text}`;
+            button.title = '点击可改选这一项';
             
-            // 历史记录中的选项不可点击
-            button.disabled = true;
-            button.style.opacity = '0.7';
-            button.style.cursor = 'not-allowed';
-            button.style.background = '#f0f0f0';
-            button.style.color = '#999';
-            button.style.borderColor = '#ddd';
+            button.addEventListener('click', () => {
+                this.selectOption(option, button, letter);
+            });
             
             optionsDiv.appendChild(button);
         });
@@ -558,49 +556,11 @@ class ChatApp {
     }
     
     /**
-     * 从历史记录恢复结果文档
+     * 从历史记录恢复结果文档（与实时渲染共用同一套卡片）
+     * 注意：参数名不能用 document，否则会遮蔽浏览器全局 document
      */
-    appendResultFromHistory(document) {
-        if (!document) {
-            return;
-        }
-        
-        const container = document.createElement('div');
-        container.className = 'result-container';
-        
-        // 标题
-        const title = document.createElement('div');
-        title.className = 'result-title';
-        title.textContent = '📄 查询结果';
-        container.appendChild(title);
-        
-        // ID
-        const idItem = document.createElement('div');
-        idItem.className = 'result-item';
-        idItem.innerHTML = `<span class="result-label">文档ID：</span>${document.id}`;
-        container.appendChild(idItem);
-        
-        // 层级路径
-        const pathItem = document.createElement('div');
-        pathItem.className = 'result-item';
-        pathItem.innerHTML = `<span class="result-label">层级路径：</span>${document.hierarchyPath || '未知'}`;
-        container.appendChild(pathItem);
-        
-        // 文件名称
-        const nameItem = document.createElement('div');
-        nameItem.className = 'result-item';
-        nameItem.innerHTML = `<span class="result-label">文件名称：</span>${document.fileName}`;
-        container.appendChild(nameItem);
-        
-        // 关键词（如果有）
-        if (document.keywords && document.keywords.length > 0) {
-            const keywordsItem = document.createElement('div');
-            keywordsItem.className = 'result-item';
-            keywordsItem.innerHTML = `<span class="result-label">关键词：</span>${document.keywords.join(', ')}`;
-            container.appendChild(keywordsItem);
-        }
-        
-        this.chatArea.appendChild(container);
+    appendResultFromHistory(doc, index = 1) {
+        this.appendResult(doc, index);
     }
     
     /**
@@ -730,13 +690,8 @@ class ChatApp {
      * @param {string} letter - 选项字母
      */
     async selectOption(option, button, letter) {
-        // 重置同组所有按钮的状态（允许重新选择）
+        // 记录同组按钮：提交后统一锁定，避免对已结束的 Graph 会话重复 resume
         const allButtons = button.parentElement.querySelectorAll('.option-button');
-        allButtons.forEach(btn => {
-            btn.disabled = false;
-            btn.style.background = 'white';
-            btn.style.color = '#667eea';
-        });
         
         // 高亮选中的按钮
         button.style.background = '#667eea';
@@ -778,55 +733,120 @@ class ChatApp {
             // 接口已实现，不显示错误提示
         } finally {
             this.setLoading(false);
+            // 记录本次选择，同时保留其它选项可点击（支持改选）
+            this.markSelectedOption(allButtons, button);
         }
     }
     
     /**
-     * 显示最终结果
-     * @param {Object} document - CircuitDocument 对象
+     * 标记当前生效的选项
+     * 后端支持从最近一次澄清 checkpoint 重新分支，因此这里不禁用其它按钮：
+     * 用户对结果不满意时，可以直接点另一个选项重新选择。
+     * @param {NodeList} buttons - 选项按钮集合
+     * @param {HTMLElement} selected - 本次选中的按钮
      */
-    appendResult(document) {
-        if (!document) {
+    markSelectedOption(buttons, selected) {
+        buttons.forEach(btn => {
+            if (btn === selected) {
+                btn.disabled = false;
+                btn.style.background = '#667eea';
+                btn.style.color = 'white';
+                btn.style.opacity = '1';
+                btn.title = '当前选择';
+            } else {
+                btn.disabled = false;
+                btn.style.background = 'white';
+                btn.style.color = '#667eea';
+                btn.style.opacity = '1';
+                btn.title = '点击可改选这一组';
+            }
+        });
+    }
+    
+    /**
+     * 渲染一条最终结果卡片：序号 + 文件名主标题 + 明细行
+     * 注意：参数名不能用 document，否则会遮蔽浏览器全局 document，
+     * 导致 document.createElement 抛出 TypeError、卡片完全渲染不出来。
+     * @param {Object} doc - 后端返回的文档对象
+     * @param {number} index - 本条结果在本次回答中的序号
+     */
+    appendResult(doc, index = 1) {
+        if (!doc) {
             return;
         }
         
         const container = document.createElement('div');
         container.className = 'result-container';
         
-        // 标题
-        const title = document.createElement('div');
-        title.className = 'result-title';
-        title.textContent = '📄 查询结果';
-        container.appendChild(title);
+        // 1. 标题行：序号 + 文件名
+        const header = document.createElement('div');
+        header.className = 'result-header';
         
-        // ID
-        const idItem = document.createElement('div');
-        idItem.className = 'result-item';
-        idItem.innerHTML = `<span class="result-label">文档ID：</span>${document.id}`;
-        container.appendChild(idItem);
+        const indexBadge = document.createElement('span');
+        indexBadge.className = 'result-index';
+        indexBadge.textContent = String(index);
         
-        // 层级路径
-        const pathItem = document.createElement('div');
-        pathItem.className = 'result-item';
-        pathItem.innerHTML = `<span class="result-label">层级路径：</span>${document.hierarchyPath}`;
-        container.appendChild(pathItem);
+        const name = document.createElement('span');
+        name.className = 'result-name';
+        name.textContent = doc.fileName || '未命名资料';
         
-        // 文件名称
-        const nameItem = document.createElement('div');
-        nameItem.className = 'result-item';
-        nameItem.innerHTML = `<span class="result-label">文件名称：</span>${document.fileName}`;
-        container.appendChild(nameItem);
+        header.appendChild(indexBadge);
+        header.appendChild(name);
+        container.appendChild(header);
         
-        // 关键词（如果有）
-        if (document.keywords && document.keywords.length > 0) {
-            const keywordsItem = document.createElement('div');
-            keywordsItem.className = 'result-item';
-            keywordsItem.innerHTML = `<span class="result-label">关键词：</span>${document.keywords.join(', ')}`;
-            container.appendChild(keywordsItem);
+        // 2. 明细行
+        const body = document.createElement('div');
+        body.className = 'result-body';
+        
+        body.appendChild(this.createResultItem('资料 ID', doc.id));
+        body.appendChild(
+            this.createResultItem(
+                '层级路径',
+                String(doc.hierarchyPath || '未知').split('->').join(' → '),
+                'result-path'
+            )
+        );
+        
+        if (typeof doc.score === 'number' && doc.score !== 0) {
+            body.appendChild(this.createResultItem('匹配分', doc.score.toFixed(2)));
         }
         
+        if (Array.isArray(doc.keywords) && doc.keywords.length > 0) {
+            body.appendChild(this.createResultItem('关键词', doc.keywords.join('、')));
+        }
+        
+        container.appendChild(body);
         this.chatArea.appendChild(container);
         this.scrollToBottom();
+    }
+    
+    /**
+     * 生成一行"标签 + 取值"
+     * 取值统一用 textContent 注入，避免资料标题里的 HTML 被浏览器执行
+     * @param {string} label - 左侧标签
+     * @param {string|number} value - 右侧取值
+     * @param {string} valueClass - 取值附加样式类
+     */
+    createResultItem(label, value, valueClass = '') {
+        const item = document.createElement('div');
+        item.className = 'result-item';
+        
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'result-label';
+        labelSpan.textContent = label;
+        
+        const valueSpan = document.createElement('span');
+        valueSpan.className = valueClass
+            ? `result-value ${valueClass}`
+            : 'result-value';
+        valueSpan.textContent = (value === null || value === undefined)
+            ? '未知'
+            : String(value);
+        
+        item.appendChild(labelSpan);
+        item.appendChild(valueSpan);
+        
+        return item;
     }
     
     /**

@@ -6,9 +6,14 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+*.egg-info/
 .env
 .env.*
 !.env.example
+
+# 本地工具 / 生成的测试证据
+.dsh-project-memory/
+smoke_report.json
 
 # Local model / database runtime data
 .cache/
