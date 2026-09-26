@@ -107,6 +107,7 @@ async def run_search_workflow(
         "intent": {},
         "rewritten_query": "",
         "filter_query": None,
+        "filter_fallback": False,
         "candidate_ids": [],
         "candidate_documents": [],
         "selected_filters": {},

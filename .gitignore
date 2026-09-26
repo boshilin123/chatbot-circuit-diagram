@@ -13,7 +13,7 @@ __pycache__/
 
 # 本地工具 / 生成的测试证据
 .dsh-project-memory/
-smoke_report.json
+smoke_report*.json
 
 # Local model / database runtime data
 .cache/

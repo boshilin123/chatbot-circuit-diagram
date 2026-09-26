@@ -10,6 +10,7 @@ class CircuitSearchState(TypedDict, total=False):
     intent: dict[str, Any]
     rewritten_query: str
     filter_query: str | None
+    filter_fallback: bool
 
     candidate_ids: list[int]
     candidate_documents: list[dict[str, Any]]

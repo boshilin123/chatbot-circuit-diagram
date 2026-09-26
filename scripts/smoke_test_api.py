@@ -4,7 +4,7 @@
     .venv\\Scripts\\python.exe scripts\\smoke_test_api.py --base-url http://127.0.0.1:8010
     .venv\\Scripts\\python.exe scripts\\smoke_test_api.py --json-out smoke_report.json
 
-用例矩阵见 TEST_PLAN.md。退出码 0 表示 P0 用例全绿。
+用例矩阵见 TEST_PLAN.md。退出码 0 表示 P0/P1 用例全绿。
 注意：会真实调用 DeepSeek 并触发 CPU Reranker，单次检索 15～35 秒。
 """
 
@@ -22,7 +22,7 @@ from typing import Any
 import httpx
 
 CLARIFY_QUERY = "东风天龙仪表"
-MANY_CLARIFY_QUERY = "4HK1发动机电脑板针脚定义"
+MANY_CLARIFY_QUERY = "发动机电脑板针脚定义"
 DIRECT_QUERY = "东风天龙仪表针脚定义"
 FALSE_NEGATIVE_QUERY = "徐工仪表线路图"
 OPTION_COUNT_PATTERN = re.compile(r"（(\d+)条）")
@@ -117,6 +117,21 @@ def data_of(payload: Any) -> dict:
 def doc_ids(payload: Any) -> list[int]:
     docs = data_of(payload).get("documents") or []
     return [int(doc["id"]) for doc in docs]
+
+
+def search_response_has_results(status: int, payload: Any) -> bool:
+    """检索回归的严格通过条件，避免接口错误或空数据被判为成功。"""
+
+    if status != 200 or not isinstance(payload, dict) or payload.get("code") != 1:
+        return False
+
+    data = data_of(payload)
+    response_type = data.get("type")
+    if response_type == "options":
+        return bool(data.get("options"))
+    if response_type == "result":
+        return bool(data.get("documents"))
+    return False
 
 
 def option_expected_count(option: dict) -> int | None:
@@ -505,18 +520,25 @@ def main() -> int:
         elapsed,
     )
 
-    # ---------- L4 已知缺陷回归 ----------
-    print("\n== L4 已知缺陷回归 ==", flush=True)
+    # ---------- L4 检索降级回归 ----------
+    print("\n== L4 检索降级回归 ==", flush=True)
     status, payload, elapsed = api.chat("t13-false-negative", FALSE_NEGATIVE_QUERY)
+    report.raw["t13"] = {
+        "status": status,
+        "payload": payload,
+    }
     data = data_of(payload)
-    is_no_results = "没有找到" in str(data.get("content", "")) or data.get("type") == "text"
+    passed = search_response_has_results(status, payload)
+    result_count = len(data.get("documents") or data.get("options") or [])
     report.add(
         "T13",
-        f"硬过滤假阴性（{FALSE_NEGATIVE_QUERY}）",
-        "理想应返回结果；当前落到无结果即为缺陷复现（TEST_PLAN §4-1）",
-        "P2",
-        not is_no_results,
-        f"type={data.get('type')} content={str(data.get('content'))[:40]!r}",
+        f"过滤零命中回退（{FALSE_NEGATIVE_QUERY}）",
+        "硬过滤零命中时应回退无过滤检索，并返回结果或澄清选项（TEST_PLAN §4-1）",
+        "P1",
+        passed,
+        f"http={status} code={payload.get('code') if isinstance(payload, dict) else None} "
+        f"type={data.get('type')} count={result_count} "
+        f"content={str(data.get('content'))[:40]!r}",
         elapsed,
     )
 
@@ -558,7 +580,7 @@ def summarize(report: Report, args: argparse.Namespace) -> int:
         )
         print(f"\n原始响应已写入 {args.json_out}", flush=True)
 
-    return 1 if failed_p0 else 0
+    return 1 if failed_p0 or failed_p1 else 0
 
 
 if __name__ == "__main__":

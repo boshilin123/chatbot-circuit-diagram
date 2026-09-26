@@ -18,12 +18,13 @@ def retrieve(state: CircuitSearchState) -> dict:
 
     # 1. Dense + BM25 + RRF 召回较大的候选集合
     ranker = RRFRanker(k=settings.rrf_k)
+    filter_query = state.get("filter_query")
     docs = hybrid_search(
         query,
         ranker=ranker,
         top_k=settings.graph_candidate_k,
         candidate_k=settings.graph_candidate_k,
-        filter_query=state.get("filter_query"),
+        filter_query=filter_query,
     )
 
     # 2. Cross-Encoder 精排，但暂时保留足够候选供 LangGraph 澄清
@@ -33,6 +34,24 @@ def retrieve(state: CircuitSearchState) -> dict:
         top_k=settings.graph_candidate_k,
         min_score=settings.reranker_min_score,
     )
+
+    # 3. 硬过滤可能因资料标题与用户说法不完全一致而产生假阴性。
+    #    必须在精排之后判断零命中：过滤召回虽非空，也可能全被阈值淘汰。
+    filter_fallback = bool(filter_query and not docs)
+    if filter_fallback:
+        fallback_docs = hybrid_search(
+            query,
+            ranker=ranker,
+            top_k=settings.graph_candidate_k,
+            candidate_k=settings.graph_candidate_k,
+            filter_query=None,
+        )
+        docs = cross_encoder_rerank(
+            query,
+            fallback_docs,
+            top_k=settings.graph_candidate_k,
+            min_score=settings.reranker_min_score,
+        )
 
     candidate_documents = [
         doc.model_dump()
@@ -45,6 +64,8 @@ def retrieve(state: CircuitSearchState) -> dict:
             int(doc["doc_id"])
             for doc in candidate_documents
         ],
+        "filter_query": None if filter_fallback else filter_query,
+        "filter_fallback": filter_fallback,
         "selected_filters": {},
         "used_facets": [],
         "clarification_round": 0,

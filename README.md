@@ -55,11 +55,6 @@
 - P50 / P95 Latency
 - Benchmark JSONL + Markdown Report
 
-尚未实现：
-
-- Reranker
-
-
 完整实施路线见 [`LANGCHAIN_RAG_REFACTOR_PLAN.md`](./LANGCHAIN_RAG_REFACTOR_PLAN.md)。
 
 ## 本地启动
