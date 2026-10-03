@@ -55,11 +55,30 @@
 - P50 / P95 Latency
 - Benchmark JSONL + Markdown Report
 
-完整实施路线见 [`LANGCHAIN_RAG_REFACTOR_PLAN.md`](./LANGCHAIN_RAG_REFACTOR_PLAN.md)。
+完整实施路线见 [`docs/LANGCHAIN_RAG_REFACTOR_PLAN.md`](./docs/LANGCHAIN_RAG_REFACTOR_PLAN.md)。
 
 ## 本地启动
 
-### 1. Python 环境
+### 已配置过的 Windows 环境
+
+在项目根目录执行：
+
+```powershell
+.\scripts\start.ps1
+```
+
+默认地址为 `http://127.0.0.1:8011`。如需指定其他端口：
+
+```powershell
+.\scripts\start.ps1 -Port 8000
+```
+
+该脚本会先启动 Docker 中的 Milvus / MinIO / etcd，再在前台启动
+FastAPI。按 `Ctrl+C` 停止 FastAPI；Docker 数据保存在 `runtime/docker/`。
+
+### 首次安装
+
+#### 1. Python 环境
 
 推荐 Python 3.11 或 3.12。
 
@@ -79,13 +98,13 @@ Linux / macOS：
 source .venv/bin/activate
 ```
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-### 3. 配置 DeepSeek
+#### 3. 配置 DeepSeek
 
 Windows：
 
@@ -103,55 +122,131 @@ cp .env.example .env
 
 > 不要把 `.env` 或任何真实 API Key 提交到 Git。
 
-### 4. 启动 FastAPI
+#### 4. 配置 LangSmith（可选）
+
+需要在 LangSmith 查看 LangGraph 节点、LLM 调用、耗时和错误时，在 `.env`
+中配置：
+
+```dotenv
+LANGSMITH_TRACING="true"
+LANGSMITH_API_KEY="your-langsmith-api-key"
+LANGSMITH_PROJECT="chatbot-circuit-diagram"
+```
+
+双引号可保留，`start.ps1` 会在启动 Uvicorn 前导入 `.env` 并去掉外层引号。
+如果不需要上报 Trace，设置 `LANGSMITH_TRACING=false`。
+
+当前 Web 主流程由 LangGraph 编排，`app/agents/` 中的 `create_agent()` 实现作为
+Phase 7 的独立 Agent 能力保留，但 `/api/chat` 实际调用 `app/graph/`。
+
+#### 5. 启动 Docker 依赖
 
 ```bash
-uvicorn app.main:app --reload
+docker compose up -d
 ```
+
+#### 6. 首次建立索引
+
+仅首次启动或确认需要重建数据时执行：
+
+```bash
+python scripts/index_dense.py --recreate
+python scripts/index_hybrid.py --recreate
+```
+
+#### 7. 启动 FastAPI
+
+在 Windows 上使用启动脚本，它会同时加载 `.env`：
+
+```powershell
+.\scripts\start.ps1
+```
+
+Linux / macOS 先导出 `.env` 再启动：
+
+```bash
+set -a
+source .env
+set +a
+uvicorn app.main:app --host 127.0.0.1 --port 8011 --reload
+```
+
+#### 8. 启动 LangGraph Studio（可选）
+
+LangSmith Tracing 用于查看已经发生的调用记录；LangGraph Studio 用于以图形方式
+交互运行、调试节点和处理中断。Studio 使用独立的本地 Agent Server，不替代
+FastAPI Web 服务。
+
+首次安装开发依赖：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+启动 Studio（默认端口 `2024`，会自动打开浏览器）：
+
+```powershell
+.\scripts\start-studio.ps1
+```
+
+也可以只启动服务，再手动打开终端输出的 Studio URL：
+
+```powershell
+.\scripts\start-studio.ps1 -NoBrowser
+```
+
+Studio 中选择 `circuit_search` 图，输入字段使用 `original_query`。Milvus / MinIO /
+etcd 仍需提前通过 `start.ps1` 或 `docker compose up -d` 启动。
 
 打开：
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:8011
 ```
 
 健康检查：
 
 ```text
-http://127.0.0.1:8000/api/health
+http://127.0.0.1:8011/api/health
 ```
+
+### 运行期文件
+
+所有可再生的运行数据统一放在：
+
+```text
+runtime/
+├── docker/   # Milvus / MinIO / etcd 持久化数据
+├── logs/     # 需要保留的本地日志
+└── reports/  # 冒烟测试等生成报告
+```
+
+`runtime/`、`.venv/`、`.env` 和各类缓存均不会提交到 Git。
 
 ## 当前目录
 
 ```text
 .
 ├── app/
-│   ├── api/
-│   ├── core/
-│   ├── rag/
-│   │   ├── embeddings.py
-│   │   ├── loader.py
-│   │   ├── retriever.py
-│   │   └── vectorstore.py
-│   ├── schemas/
-│   └── main.py
-├── data/
-│   ├── circuit-data.csv
-│   └── keywords.txt
-├── frontend/
-│   ├── css/
-│   ├── js/
-│   └── index.html
-├── scripts/
-│   ├── index_dense.py
-│   ├── ingest.py
-│   └── search_dense.py
-├── tests/
-│   ├── test_health.py
-│   └── test_loader.py
+│   ├── agents/      # LangChain Agent
+│   ├── api/         # FastAPI 路由
+│   ├── core/        # 配置与模型
+│   ├── graph/       # LangGraph 多轮工作流
+│   ├── rag/         # 检索、精排与索引
+│   ├── schemas/     # Pydantic 数据模型
+│   └── tools/       # Agent Tools
+├── data/            # CSV 资料与原始查询
+├── docs/            # 重构计划与测试方案
+├── eval/            # 离线检索评估
+├── frontend/        # 聊天页面
+├── scripts/         # 启动、建索引与验证脚本
+├── tests/           # 自动化测试
+├── runtime/         # 本地运行数据（Git 忽略）
 ├── .env.example
+├── docker-compose.yml
+├── README.md
 ├── pyproject.toml
-└── LANGCHAIN_RAG_REFACTOR_PLAN.md
+└── .gitignore
 ```
 
 ## 数据导入设计

@@ -2,9 +2,9 @@
 
 用法：
     .venv\\Scripts\\python.exe scripts\\smoke_test_api.py --base-url http://127.0.0.1:8010
-    .venv\\Scripts\\python.exe scripts\\smoke_test_api.py --json-out smoke_report.json
+    .venv\\Scripts\\python.exe scripts\\smoke_test_api.py --json-out runtime/reports/smoke_report.json
 
-用例矩阵见 TEST_PLAN.md。退出码 0 表示 P0/P1 用例全绿。
+用例矩阵见 docs/TEST_PLAN.md。退出码 0 表示 P0/P1 用例全绿。
 注意：会真实调用 DeepSeek 并触发 CPU Reranker，单次检索 15～35 秒。
 """
 
@@ -566,6 +566,7 @@ def summarize(report: Report, args: argparse.Namespace) -> int:
         print(f"  - {case.case_id} {case.name}: {case.detail}", flush=True)
 
     if args.json_out:
+        args.json_out.parent.mkdir(parents=True, exist_ok=True)
         args.json_out.write_text(
             json.dumps(
                 {

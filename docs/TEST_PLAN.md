@@ -203,7 +203,7 @@ interrupt** 再 resume。统一"重建"而不是"直接 resume"，从根上绕�
 ```powershell
 cd D:\Study\chatbot-circuit-diagram
 .venv\Scripts\python.exe scripts\smoke_test_api.py --base-url http://127.0.0.1:8010
-# 追加 --json-out smoke_report.json 可保存原始响应
+# 追加 --json-out runtime/reports/smoke_report.json 可保存原始响应
 ```
 
 脚本退出码：`0` = P0 全绿；`1` = 存在 P0 失败。
@@ -332,7 +332,7 @@ T13: "徐工仪表线路图" → 找到 18 条候选资料，进入资料类型�
 pytest 53/53 ✅   ruff 全绿 ✅
 ```
 
-原始 API 响应保存在 `smoke_report_filter_fallback.json`。T13 已从“P2 已知缺陷”
+原始 API 响应保存在 `runtime/reports/smoke_report_filter_fallback.json`。T13 已从“P2 已知缺陷”
 提升为 P1 回归门禁；冒烟脚本现在也会在任一 P1 用例失败时返回非零退出码。
 
 ### 6-8 Bugbot 审计修复回归
@@ -356,4 +356,4 @@ T01~T16 全部 PASS（P0 失败 0 / P1 失败 0）
 pytest 59/59 ✅   ruff 全绿 ✅   node --check ✅
 ```
 
-最终原始响应报告保存在 `smoke_report_bugfix.json`。
+最终原始响应报告保存在 `runtime/reports/smoke_report_bugfix.json`。

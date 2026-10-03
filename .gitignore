@@ -13,10 +13,15 @@ __pycache__/
 
 # 本地工具 / 生成的测试证据
 .dsh-project-memory/
+.langgraph_api/
 smoke_report*.json
+
+# 统一运行目录：Docker 数据、日志、测试报告
+runtime/
 
 # Local model / database runtime data
 .cache/
+# 旧版 Docker 数据路径（避免误提交残留数据）
 volumes/
 
 # Maven / legacy Java

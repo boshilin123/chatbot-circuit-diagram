@@ -15,9 +15,8 @@ from app.graph.nodes.understand import route_query, understand_query
 from app.graph.state import CircuitSearchState
 
 
-@lru_cache
-def get_circuit_graph():
-    """构建课程风格的 StateGraph 工作流。"""
+def build_circuit_graph(*, checkpointer=None):
+    """Build the shared workflow for FastAPI or LangGraph Studio."""
 
     # 1. 定义 StateGraph
     builder = StateGraph(CircuitSearchState)
@@ -70,9 +69,18 @@ def get_circuit_graph():
         },
     )
 
-    # 5. InMemorySaver 保存本地多轮短期状态
-    checkpointer = InMemorySaver()
-
     return builder.compile(
         checkpointer=checkpointer,
     )
+
+
+@lru_cache
+def get_circuit_graph():
+    """Build the FastAPI graph with process-local conversation state."""
+
+    return build_circuit_graph(checkpointer=InMemorySaver())
+
+
+# LangGraph Agent Server supplies its own runtime checkpointer.  This exported
+# graph is referenced by langgraph.json and rendered by LangGraph Studio.
+studio_graph = build_circuit_graph()

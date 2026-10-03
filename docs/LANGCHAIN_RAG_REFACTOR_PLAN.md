@@ -397,7 +397,7 @@ Fusion / Rerank
 | 测试 | pytest |
 | 配置 | `.env` + `pydantic-settings` |
 | 本地基础设施 | Docker Compose |
-| 可观测性 | 日志优先；LangSmith 后续作为增强项 |
+| 可观测性 | 日志 + 可选 LangSmith Tracing，通过 `.env` 开关启用 |
 
 ---
 
