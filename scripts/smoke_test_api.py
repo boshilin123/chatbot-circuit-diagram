@@ -28,6 +28,7 @@ FALSE_NEGATIVE_QUERY = "徐工仪表线路图"
 OPTION_COUNT_PATTERN = re.compile(r"（(\d+)条）")
 
 
+# 记录一个冒烟用例的标识、预期、级别、状态、细节和耗时。
 @dataclass
 class Case:
     case_id: str
@@ -39,11 +40,13 @@ class Case:
     latency: float = 0.0
 
 
+# 保存用例结论和部分原始响应，兼顾快速查看与后续排错。
 @dataclass
 class Report:
     cases: list[Case] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
+    # 依据 passed/severity 生成 PASS、WARN 或 FAIL，用例入表并立即打印。
     def add(
         self,
         case_id: str,
@@ -69,11 +72,14 @@ class Report:
         return case
 
 
+# 统一封装 HTTP 客户端、聊天和选择请求，为用例返回状态/载荷/耗时。
 class Api:
+    # 清理 base_url 尾部斜杠，并创建共享的同步 httpx.Client。
     def __init__(self, base_url: str, timeout: float = 300.0) -> None:
         self.base_url = base_url.rstrip("/")
         self.client = httpx.Client(timeout=timeout)
 
+    # 发送 HTTP 请求并计时，优先解析 JSON，非 JSON 响应保留短文本。
     def request(self, method: str, path: str, **kwargs: Any) -> tuple[int, Any, float]:
         started = time.perf_counter()
         response = self.client.request(method, f"{self.base_url}{path}", **kwargs)
@@ -84,6 +90,7 @@ class Api:
             payload = response.text[:200]
         return response.status_code, payload, elapsed
 
+    # 向 /api/chat 发送指定会话的用户问题。
     def chat(self, session_id: str, message: str) -> tuple[int, Any, float]:
         return self.request(
             "POST",
@@ -91,6 +98,7 @@ class Api:
             json={"sessionId": session_id, "message": message},
         )
 
+    # 向 /api/select 发送 optionId/optionValue，测试工作流中断恢复。
     def select(
         self,
         session_id: str,
@@ -108,12 +116,14 @@ class Api:
         )
 
 
+# 安全提取统一响应中的 data 字典，格式不符时返回空字典。
 def data_of(payload: Any) -> dict:
     if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
         return payload["data"]
     return {}
 
 
+# 提取响应 documents 中的整数 ID，便于比较不同选择后的结果集。
 def doc_ids(payload: Any) -> list[int]:
     docs = data_of(payload).get("documents") or []
     return [int(doc["id"]) for doc in docs]
@@ -134,6 +144,7 @@ def search_response_has_results(status: int, payload: Any) -> bool:
     return False
 
 
+# 从选项标签里的（N条）提取分组数量，用于对照实际返回。
 def option_expected_count(option: dict) -> int | None:
     match = OPTION_COUNT_PATTERN.search(str(option.get("text", "")))
     return int(match.group(1)) if match else None
@@ -153,6 +164,7 @@ def clarify_session(
     return payload, elapsed
 
 
+# 解析地址/报告选项，按层级运行真实接口用例并汇总退出状态。
 def main() -> int:
     parser = argparse.ArgumentParser(description="Smoke test the running FastAPI service.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8010")
@@ -325,6 +337,7 @@ def main() -> int:
             flush=True,
         )
 
+    # 不同会话的选择结果转集合比较，检查选项是否对应不同资料组，同时忽略排序差异。
     sets = [set(ids) for ids in independent.values()]
     pairwise_distinct = all(
         sets[i] != sets[j]
@@ -368,6 +381,7 @@ def main() -> int:
             flush=True,
         )
 
+    # 同会话改选要检查后续结果是否仍重复首次结果，用于暴露旧 resume 值被重放的问题。
     first_ids = sequential[0]["ids"]
     silently_repeated = [
         item for item in sequential[1:]
@@ -443,6 +457,7 @@ def main() -> int:
             flush=True,
         )
 
+    # 检查第二轮是否提供返回入口，再验证恢复后的选项标签与第一轮一致。
     has_back = bool(round2) and round2[-1]["value"] == "__back__"
     back_restored = False
     if has_back:
@@ -545,6 +560,7 @@ def main() -> int:
     return summarize(report, args)
 
 
+# 打印各用例结论，可选写出包含原始响应的 JSON 报告。
 def summarize(report: Report, args: argparse.Namespace) -> int:
     print("\n== 汇总 ==", flush=True)
     print(f"{'ID':<5}{'级别':<5}{'状态':<6}{'耗时':>8}  用例", flush=True)
@@ -554,6 +570,7 @@ def summarize(report: Report, args: argparse.Namespace) -> int:
             flush=True,
         )
 
+    # 把关键失败与提醒分开统计，最终退出码仅依据 P0/P1 失败，便于脚本集成。
     failed_p0 = [c for c in report.cases if c.severity == "P0" and c.status == "FAIL"]
     failed_p1 = [c for c in report.cases if c.severity == "P1" and c.status == "FAIL"]
     warned = [c for c in report.cases if c.status == "WARN"]

@@ -1,3 +1,5 @@
+# 模型工具输入 schema：由 @tool 引用，用字段说明和边界约束工具调用参数。
+
 from pydantic import BaseModel, Field
 
 

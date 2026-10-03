@@ -1,3 +1,5 @@
+# Agent 精确查找工具：按文档 ID 查询本地资料索引，以 JSON 返回真实元数据。
+
 from __future__ import annotations
 
 import json

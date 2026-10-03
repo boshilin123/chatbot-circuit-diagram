@@ -1,3 +1,5 @@
+# 命令行：直接执行 Dense 语义检索，打印 ID、标题、路径和余弦分数。
+
 from __future__ import annotations
 
 import argparse
@@ -5,6 +7,7 @@ import argparse
 from app.rag.retriever import dense_search
 
 
+# 定义必填 query 和可选 --top-k，供单路语义检索使用。
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a dense Milvus search.")
     parser.add_argument("query", help="Natural-language search query.")
@@ -12,6 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# 解析查询和数量，调用 dense_search 并按返回排序展示结果。
 def main() -> None:
     args = build_parser().parse_args()
 

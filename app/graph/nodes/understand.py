@@ -1,3 +1,5 @@
+# 意图理解节点：抽取结构化意图，并区分普通对话与资料检索。
+
 from __future__ import annotations
 
 from typing import Literal

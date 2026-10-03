@@ -1,3 +1,5 @@
+# 评估方案装配：用统一接口比较 Dense、BM25、Hybrid RRF 和 Hybrid + Rerank。
+
 from __future__ import annotations
 
 from pymilvus import RRFRanker
@@ -26,7 +28,7 @@ def build_retrievers() -> dict[str, Retriever]:
         top_k=top_k,
     )
 
-    # 3. Dense + BM25 + RRF
+    # 3. Dense + BM25 + RRF，每路候选数至少覆盖最终 TopK
     def hybrid(query: str, top_k: int):
         return hybrid_search(
             query,

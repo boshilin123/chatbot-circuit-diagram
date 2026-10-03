@@ -1,3 +1,5 @@
+# 纯指标计算：只依赖预期 ID、实际排序或已记录计数，不访问模型与数据库。
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -82,6 +84,7 @@ def percentile(
     if len(values) == 1:
         return values[0]
 
+    # 百分位映射到 0～n-1 的位置，使用相邻两个样本插值，不简单向上取整。
     position = (len(values) - 1) * p / 100
     lower = int(position)
     upper = min(lower + 1, len(values) - 1)

@@ -1,3 +1,5 @@
+# 硬过滤构造：把明确意图转换为对标题或目录的 Milvus LIKE 条件。
+
 from __future__ import annotations
 
 from app.schemas.intent import SearchIntent

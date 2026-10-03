@@ -1,3 +1,5 @@
+# 工作流服务层：为 HTTP 接口封装新查询、历史选项改选和图响应转换。
+
 from __future__ import annotations
 
 from typing import Any
@@ -19,6 +21,7 @@ def _config(session_id: str) -> dict:
     }
 
 
+# 读取图结果里的第一个中断载荷，提取尚待用户回答的选择题。
 def _interrupt_value(result: dict[str, Any]) -> dict[str, Any] | None:
     interrupts = result.get("__interrupt__")
     if not interrupts:
@@ -61,6 +64,7 @@ def _frontend_document(doc: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# 将图执行结果统一转成选项、文本或资料三种 GraphResponse。
 def _build_response(result: dict[str, Any]) -> GraphResponse:
     # 1. Graph interrupt -> 前端选择题
     interrupt_value = _interrupt_value(result)
@@ -203,7 +207,7 @@ async def resume_search_workflow(
     graph = get_circuit_graph()
     config = _config(session_id)
 
-    # 1. 准备能接受该选项的 interrupt：首次选择直接用，改选（含跨轮次）则重新生成
+    # 1. 首次选择与改选均从对应父检查点重建 interrupt，再提交本次选择
     if not await _prepare_resume(graph, config, option_value):
         raise ValueError(
             "当前会话没有可用的选择项（可能已完成，或服务重启导致会话状态丢失），"

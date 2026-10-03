@@ -1,3 +1,5 @@
+# 命令行：读取已验证 Benchmark，运行四组 Retriever 并保存 Markdown 指标报告。
+
 from __future__ import annotations
 
 import argparse
@@ -13,6 +15,7 @@ DEFAULT_BENCHMARK = PROJECT_ROOT / "eval" / "benchmark.jsonl"
 DEFAULT_REPORT = PROJECT_ROOT / "eval" / "retrieval_report.md"
 
 
+# 解析参数、筛选人工标签、逐方法评估，汇总后写入指定报告路径。
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Evaluate Dense / BM25 / Hybrid / Rerank retrieval."
@@ -39,6 +42,7 @@ def main() -> None:
         load_benchmark(args.benchmark)
     )
 
+    # 标签缺失时停止评估，避免全部空 Ground Truth 产生无意义的零分报告。
     if not cases:
         raise RuntimeError(
             "没有已验证的 Benchmark。请先为 expected_ids 填写真实文档 ID，"

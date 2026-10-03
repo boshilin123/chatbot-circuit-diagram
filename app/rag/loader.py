@@ -1,3 +1,5 @@
+# 资料加载唯一入口：把 CSV 的每个有效行转成一个 LangChain Document。
+
 from __future__ import annotations
 
 import csv
@@ -16,6 +18,7 @@ TITLE_COLUMN = "关联文件名称"
 REQUIRED_COLUMNS = {ID_COLUMN, HIERARCHY_COLUMN, TITLE_COLUMN}
 
 
+# 保存一条异常 CSV 记录的行号、原因和原始字段，便于定位数据问题。
 @dataclass(frozen=True)
 class LoadIssue:
     row_number: int
@@ -23,16 +26,19 @@ class LoadIssue:
     raw: Mapping[str, str | None]
 
 
+# 集中返回有效文档、错误记录和处理行数，支持部分成功的批量导入。
 @dataclass
 class CircuitDocumentLoadResult:
     documents: list[Document] = field(default_factory=list)
     issues: list[LoadIssue] = field(default_factory=list)
     total_rows: int = 0
 
+    # 根据 documents 当前长度统计有效行数，避免维护重复计数。
     @property
     def valid_rows(self) -> int:
         return len(self.documents)
 
+    # 根据 issues 当前长度统计无效行数，供导入脚本展示质量摘要。
     @property
     def invalid_rows(self) -> int:
         return len(self.issues)
@@ -63,6 +69,7 @@ def record_to_document(record: CircuitDocumentRecord) -> Document:
     )
 
 
+# 检查 CSV 是否包含 ID、层级路径、关联文件名称三个必要字段。
 def _validate_headers(fieldnames: list[str] | None) -> None:
     if not fieldnames:
         raise ValueError("CSV 文件缺少表头")
@@ -73,6 +80,7 @@ def _validate_headers(fieldnames: list[str] | None) -> None:
         raise ValueError(f"CSV 缺少必要字段: {missing_text}")
 
 
+# 清理单行字段、转换整数 ID，再经 Pydantic 验证后生成 Document。
 def _parse_row(
     row: Mapping[str, str | None],
     row_number: int,
@@ -88,6 +96,7 @@ def _parse_row(
             raw=dict(row),
         )
 
+    # 先做格式转换，再由 CircuitDocumentRecord 校验正数与非空字段，分层说明数据错误。
     try:
         doc_id = int(raw_id)
     except ValueError:
@@ -128,11 +137,13 @@ def load_circuit_documents(
 
     result = CircuitDocumentLoadResult()
 
+    # utf-8-sig 自动去除可选 BOM；newline="" 让 csv 模块正确处理换行及引号字段。
     with path.open("r", encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
         _validate_headers(reader.fieldnames)
 
         for row_number, row in enumerate(reader, start=2):
+            # 完全空白行不计入 total_rows；非空但字段无效的行才进入 issues。
             if not row or not any((value or "").strip() for value in row.values()):
                 continue
 

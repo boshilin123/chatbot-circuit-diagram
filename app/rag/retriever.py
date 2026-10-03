@@ -1,3 +1,5 @@
+# 单路语义召回：使用 Dense 集合按向量相似度检索，再转换成统一结果模型。
+
 from __future__ import annotations
 
 from typing import Protocol
@@ -9,7 +11,9 @@ from app.rag.vectorstore import create_dense_vectorstore
 from app.schemas.search import DenseSearchResult
 
 
+# 声明本模块需要的最小向量库接口，支持真实 Milvus 和测试替身。
 class VectorStore(Protocol):
+    # 以 query、数量 k 和可选 expr 搜索，返回 Document/分数对列表。
     def similarity_search_with_score(
         self,
         query: str,

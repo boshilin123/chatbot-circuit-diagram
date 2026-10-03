@@ -1,3 +1,5 @@
+# 普通对话节点：仅对非检索问题调用聊天模型，并把回复写入图状态。
+
 from __future__ import annotations
 
 from langchain_core.messages import HumanMessage, SystemMessage

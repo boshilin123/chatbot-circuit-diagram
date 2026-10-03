@@ -1,3 +1,5 @@
+# 稠密索引管理：配置 HNSW/COSINE 集合，并将标准文档以稳定 ID 分批写入 Milvus。
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -8,6 +10,7 @@ from langchain_milvus import Milvus
 from app.core.config import get_settings
 from app.rag.embeddings import get_embeddings
 
+# HNSW 是近似邻居索引；M/efConstruction 控制建图规模与搜索质量/资源的权衡。
 DENSE_INDEX_PARAMS = {
     "index_type": "HNSW",
     "metric_type": "COSINE",
@@ -17,6 +20,7 @@ DENSE_INDEX_PARAMS = {
     },
 }
 
+# ef 控制查询时考察的候选规模；此处用 COSINE 与索引距离度量保持一致。
 DENSE_SEARCH_PARAMS = {
     "metric_type": "COSINE",
     "params": {
@@ -87,6 +91,7 @@ def index_dense_documents(
 
     # 3. 初始化向量库并写入数据
     vectorstore = create_dense_vectorstore(drop_old=recreate)
+    # 存在集合时选择 upsert 更新已有主键，首次选择 add_documents 完成初始写入。
     write_documents = (
         vectorstore.upsert
         if vectorstore.client.has_collection(vectorstore.collection_name)

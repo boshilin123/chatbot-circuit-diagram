@@ -1,3 +1,5 @@
+# 图编排入口：把意图理解、查询改写、检索、澄清和回答连接成确定的业务流程。
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -69,6 +71,7 @@ def build_circuit_graph(*, checkpointer=None):
         },
     )
 
+    # compile 固化节点与边；保存运行状态的能力由传入 checkpointer 决定。
     return builder.compile(
         checkpointer=checkpointer,
     )
@@ -78,9 +81,10 @@ def build_circuit_graph(*, checkpointer=None):
 def get_circuit_graph():
     """Build the FastAPI graph with process-local conversation state."""
 
+    # 图实例与会话状态在本进程内复用，服务重启后内存会话丢失。
     return build_circuit_graph(checkpointer=InMemorySaver())
 
 
-# LangGraph Agent Server supplies its own runtime checkpointer.  This exported
-# graph is referenced by langgraph.json and rendered by LangGraph Studio.
+# Studio/Agent Server 由运行时提供 checkpointer；这里不绑定 Web 的内存存储。
+# langgraph.json 引用 studio_graph，用于 Studio 图形展示与交互调试。
 studio_graph = build_circuit_graph()

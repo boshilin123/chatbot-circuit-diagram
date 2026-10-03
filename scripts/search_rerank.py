@@ -1,3 +1,5 @@
+# 命令行：运行混合召回和 Cross-Encoder 精排，观察两个阶段的评分。
+
 from __future__ import annotations
 
 import argparse
@@ -5,6 +7,7 @@ import argparse
 from app.rag.pipeline import retrieve_docs
 
 
+# 解析最终数量及候选数量，调用完整检索管线并打印双阶段分数。
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run Hybrid RRF + Cross-Encoder reranking."

@@ -1,3 +1,5 @@
+# 结构化意图解析：让聊天模型按 SearchIntent 输出，并对 None 响应进行规则降级。
+
 from __future__ import annotations
 
 import re
@@ -7,11 +9,15 @@ from app.core.model import get_chat_model
 from app.schemas.intent import SearchIntent
 
 
+# 声明绑定结构化输出之后的最小模型接口。
 class StructuredModel(Protocol):
+    # 接收格式化提示词，返回 SearchIntent 或 None。
     def invoke(self, input: str) -> SearchIntent | None: ...
 
 
+# 声明能够绑定 Pydantic 输出模型的聊天模型接口。
 class ChatModel(Protocol):
+    # 以 schema 和 method 绑定输出结构，返回 StructuredModel。
     def with_structured_output(
         self,
         schema: type[SearchIntent],

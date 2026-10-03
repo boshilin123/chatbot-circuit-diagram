@@ -1,3 +1,5 @@
+# 精排模块：对查询和每条候选组成的文本对评分，重新排序并按阈值过滤。
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -11,7 +13,9 @@ from app.core.config import get_settings
 from app.schemas.search import RerankResult, SearchResult
 
 
+# 声明精排所需的 predict 接口，允许测试注入固定评分模型。
 class CrossEncoderModel(Protocol):
+    # 接收 (query, content) 文本对列表及批次大小，返回分数序列。
     def predict(
         self,
         sentences: list[tuple[str, str]],
@@ -20,6 +24,7 @@ class CrossEncoderModel(Protocol):
     ) -> Sequence[float]: ...
 
 
+# 缓存精排模型，避免重复加载权重。
 @lru_cache
 def get_reranker_model() -> CrossEncoder:
     """初始化课程示例中的 Cross-Encoder Reranker。"""
@@ -76,7 +81,7 @@ def cross_encoder_rerank(
         batch_size=settings.reranker_batch_size,
     )
 
-    # 3. 将 Cross-Encoder 分数写入统一结果结构
+    # 3. 保存精排分数；strict=True 检查每条候选都得到一个分数
     reranked_docs = [
         RerankResult(
             doc_id=doc.doc_id,
@@ -96,7 +101,7 @@ def cross_encoder_rerank(
         reverse=True,
     )
 
-    # 5. 对齐课程示例：过滤非正相关结果
+    # 5. 只保留分数严格大于阈值的资料，再截取 TopK
     positive_docs = [
         doc for doc in reranked_docs
         if doc.score > min_score

@@ -1,3 +1,5 @@
+# 查询改写：将自然语言问题转换成检索关键词，保留车型及 ECU 等原始编码。
+
 from __future__ import annotations
 
 from typing import Protocol
@@ -7,7 +9,9 @@ from langchain_core.messages import BaseMessage
 from app.core.model import get_chat_model
 
 
+# 声明查询改写仅需的同步 invoke 接口，便于替换模型或单元测试。
 class ChatModel(Protocol):
+    # 接收提示词字符串，返回带 content 的 LangChain BaseMessage。
     def invoke(self, input: str) -> BaseMessage: ...
 
 

@@ -1,3 +1,5 @@
+# 查询准备节点：把用户原话转成检索关键词，同时生成元数据过滤表达式。
+
 from __future__ import annotations
 
 from app.graph.state import CircuitSearchState

@@ -1,3 +1,5 @@
+# 澄清执行节点：暂停等待选择，按真实文档 ID 筛选，并维护可回退的候选快照。
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -17,6 +19,7 @@ def apply_selection(
 ) -> dict:
     """应用用户选择，缩小候选集合或返回上一步。"""
 
+    # 深拷贝历史，避免本轮修改影响已经保存的回退快照。
     history = deepcopy(state.get("candidate_history", []))
 
     # 1. 返回上一步：恢复选择前的候选集合和 Facet 状态
@@ -50,6 +53,7 @@ def apply_selection(
     if not selected_ids:
         raise ValueError("无效的选择项，请重新选择当前选项")
 
+    # 先转集合加速成员判断，再遍历当前文档列表筛选，从而保持相关度排序。
     selected_id_set = set(selected_ids)
     current_docs = state["candidate_documents"]
     selected_docs = [
@@ -74,6 +78,7 @@ def apply_selection(
     if current_facet and current_facet not in used_facets:
         used_facets.append(current_facet)
 
+    # 另建字典再修改，避免就地改写输入 State；保存的是可读选项标签，供历史恢复。
     selected_filters = dict(state.get("selected_filters", {}))
     selected_option = next(
         (

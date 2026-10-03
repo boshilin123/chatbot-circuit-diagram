@@ -1,3 +1,5 @@
+# 命令行：同时召回 Dense 与 BM25，再用 RRF 融合并展示排名。
+
 from __future__ import annotations
 
 import argparse
@@ -8,6 +10,7 @@ from app.core.config import get_settings
 from app.rag.hybrid_search import hybrid_search
 
 
+# 读取查询和数量，按配置构造 RRFRanker 后执行 hybrid_search。
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run Dense + BM25 hybrid search with RRF."

@@ -1,3 +1,5 @@
+# 评估数据读写：采用一行一个样本的 JSONL，并区分待标注与已人工确认的样本。
+
 from __future__ import annotations
 
 import json

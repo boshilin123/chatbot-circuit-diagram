@@ -1,3 +1,5 @@
+# 命令行：从 keywords.txt 生成待人工确认的 benchmark.jsonl。
+
 from __future__ import annotations
 
 import argparse
@@ -10,6 +12,7 @@ from eval.schema import EvalCase
 DEFAULT_OUTPUT = PROJECT_ROOT / "eval" / "benchmark.jsonl"
 
 
+# 解析输入/输出路径，清理非空查询，创建 pending 样本并写入 JSONL。
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Build an unlabeled retrieval benchmark from keywords.txt."

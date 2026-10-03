@@ -1,3 +1,5 @@
+# 澄清选项生成：从真实标题和层级路径分组，尽量让每轮选择有效缩小候选。
+
 from __future__ import annotations
 
 import re
@@ -49,6 +51,7 @@ TITLE_EXTENSION_PATTERN = re.compile(r"\.(docx?|pdf|xlsx?|pptx?)$", re.IGNORECAS
 TITLE_BRACKET_PATTERN = re.compile(r"【[^】]*】")
 
 
+# 将文档 hierarchy_path 按 -> 拆分并去除空层级。
 def _path_segments(doc: dict[str, Any]) -> list[str]:
     return [
         segment.strip()
@@ -122,6 +125,7 @@ def _limit_groups(
 ) -> list[tuple[str, list[int]]]:
     """维度分组过多时保留主要分类，其余合并为"其他"。"""
 
+    # 优先保留文档多的大组，数量相同按标签排序，让同一候选集生成稳定选项。
     sorted_groups = sorted(
         groups.items(),
         key=lambda item: (-len(item[1]), item[0]),
@@ -130,6 +134,7 @@ def _limit_groups(
     if len(sorted_groups) <= max_options:
         return sorted_groups
 
+    # 预留一个其他选项，剩余所有小组的 ID 合并进去，不丢弃候选。
     keep_count = max_options - 1
     kept = sorted_groups[:keep_count]
     other_ids = [
@@ -147,6 +152,7 @@ def _fallback_rank_groups(
 ) -> list[tuple[str, list[int]]]:
     """所有维度都无法有效区分时按排名分组，并用组内首条标题作为标签。"""
 
+    # 按候选规模与可用选项位决定分组数；连续切片保留原精排的相邻关系。
     group_count = min(
         max_options,
         max(2, ceil(len(docs) / 5)),
@@ -202,6 +208,7 @@ def _select_dimension(
     3. 全部失败时按排名兜底。
     """
 
+    # 枚举尚未用过的维度；类型分组和目录分组都来自当前真实候选。
     dimensions: list[tuple[str, str, dict[str, list[int]]]] = []
 
     if DOCUMENT_TYPE_FACET not in used_facets:
@@ -226,6 +233,7 @@ def _select_dimension(
             )
         )
 
+    # 为自然可用的维度生成比较键，优先分组数多者，同组数优先资料类型。
     def rank(dimension: tuple[str, str, dict[str, list[int]]]) -> tuple[int, int]:
         facet_key, _, groups = dimension
         return (len(groups), 1 if facet_key == DOCUMENT_TYPE_FACET else 0)
@@ -244,6 +252,7 @@ def _select_dimension(
             0 if facet_key == DOCUMENT_TYPE_FACET else 1,
         )
 
+    # 先寻找无需合并的自然分组，避免过早使用含糊的其他标签。
     clean = [
         dimension
         for dimension in dimensions
@@ -258,6 +267,7 @@ def _select_dimension(
         facet_key, label, groups = max(clean, key=rank)
         return facet_key, label, _limit_groups(groups, max_options)
 
+    # 自然分组不可用时才考虑超限维度，合并后比较最大桶大小，尽量使选择有效收敛。
     overflow = [
         dimension
         for dimension in dimensions
@@ -279,6 +289,7 @@ def _select_dimension(
     )
 
 
+# 依据资料类型、路径维度或排名兜底生成匹配的选择题提示。
 def _build_prompt(
     doc_count: int,
     facet_key: str,
@@ -330,6 +341,7 @@ def build_facets(state: CircuitSearchState) -> dict:
     option_groups: dict[str, list[int]] = {}
 
     for index, (label, doc_ids) in enumerate(chosen_groups, start=1):
+        # 机器选项值与展示标签分离：恢复时以 value 查 option_groups，不能靠解析中文标签筛选。
         value = f"{facet_key}:{index}"
         options.append(
             {

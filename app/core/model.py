@@ -1,3 +1,5 @@
+# 聊天模型工厂：为意图抽取、查询改写、普通对话和独立 Agent 提供统一模型。
+
 from functools import lru_cache
 
 from langchain.chat_models import init_chat_model
@@ -12,6 +14,7 @@ def get_chat_model() -> BaseChatModel:
 
     settings = get_settings()
 
+    # 先验证密钥，再创建客户端；配置问题能以明确 RuntimeError 反馈到 API。
     if (
         settings.deepseek_api_key is None
         or not settings.deepseek_api_key.get_secret_value().strip()

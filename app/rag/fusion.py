@@ -1,3 +1,5 @@
+# 独立 RRF 教学实现：按排名融合多路结果；在线混合检索使用 Milvus 的 RRFRanker。
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -21,7 +23,7 @@ def reciprocal_rank_fusion(
     rrf_scores: dict[int, float] = {}
     results: dict[int, SearchResult] = {}
 
-    # 1. 累加每个文档在每个结果列表中的 RRF 分数
+    # 1. 同一文档的各路分数累加，每路贡献为 1 / (k + 排名)
     for ranked_list in ranked_lists:
         for rank, doc in enumerate(ranked_list, start=1):
             rrf_scores[doc.doc_id] = (

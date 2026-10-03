@@ -1,3 +1,5 @@
+# 离线评估模型：定义人工标签、单次召回记录、方法汇总和多轮业务统计。
+
 from __future__ import annotations
 
 from typing import Literal
@@ -14,6 +16,7 @@ class EvalCase(BaseModel):
     label_status: Literal["pending", "verified"] = "pending"
     notes: str | None = None
 
+    # 判断样本是否同时满足 verified 状态和非空 expected_ids。
     @property
     def is_labeled(self) -> bool:
         return (
@@ -57,6 +60,7 @@ class BusinessEvalSample(BaseModel):
     llm_call_count: int = Field(ge=0)
 
 
+# 表达业务样本数、最终结果不超过 5 的比例及平均轮数/调用数。
 class BusinessSummary(BaseModel):
     sample_count: int
     final_le_5_rate: float

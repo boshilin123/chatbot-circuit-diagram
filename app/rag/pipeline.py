@@ -1,3 +1,5 @@
+# 直接检索精排管线：为工具、命令行和评估提供 Hybrid RRF → Cross-Encoder 的入口。
+
 from __future__ import annotations
 
 from pymilvus import RRFRanker

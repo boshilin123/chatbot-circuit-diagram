@@ -1,3 +1,5 @@
+# 标准查询计划：把查询理解结果集中保存，便于检索、工具输出和命令行观察。
+
 from pydantic import BaseModel
 
 from app.schemas.intent import SearchIntent

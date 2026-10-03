@@ -1,3 +1,5 @@
+# 评估汇总与输出：按检索方法求平均质量指标，并把延迟分布和结果格式化为报告。
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -19,6 +21,7 @@ def summarize_records(
 
     summaries = []
 
+    # 每种方法独立统计；样本数量为分母，质量指标按查询等权平均。
     for method, method_records in groups.items():
         count = len(method_records)
         latencies = [

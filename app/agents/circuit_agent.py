@@ -1,3 +1,5 @@
+# 独立 LangChain Agent：由模型选择调用知识库检索或按 ID 查文档的工具。
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -26,7 +28,9 @@ SYSTEM_PROMPT = """你是车辆电路图资料导航助手。
 """
 
 
+# 声明本项目运行 Agent 时需要的异步 ainvoke 接口。
 class CircuitAgent(Protocol):
+    # 接收包含 messages 的字典，异步返回包含消息轨迹的字典。
     async def ainvoke(self, input: dict[str, Any]) -> dict[str, Any]: ...
 
 
@@ -53,6 +57,7 @@ def get_circuit_agent() -> CircuitAgent:
     return agent
 
 
+# 统一读取消息 content，将字符串以外的内容转换为文本。
 def _message_content(message: Any) -> str:
     content = getattr(message, "content", "")
 

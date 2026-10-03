@@ -1,3 +1,5 @@
+# 命令行：仅预览 CSV → Document 转换和数据质量，不执行 Milvus 写入。
+
 from __future__ import annotations
 
 import argparse
@@ -7,6 +9,7 @@ from app.core.paths import DEFAULT_CIRCUIT_DATA_PATH
 from app.rag.loader import load_circuit_documents
 
 
+# 声明 dry-run 模式、输入 CSV 和样本文档展示数量。
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Preview CSV -> LangChain Document ingestion."
@@ -31,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# 加载指定 CSV，打印计数、最多十条错误及指定数量的示例文档。
 def print_summary(data_file: Path, sample_size: int) -> None:
     result = load_circuit_documents(data_file)
 
@@ -51,6 +55,7 @@ def print_summary(data_file: Path, sample_size: int) -> None:
             print(f"metadata={document.metadata}")
 
 
+# 解析命令行并校验 dry-run/非负样本数，然后启动预览。
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()

@@ -1,3 +1,5 @@
+# 终止节点：把确定的候选整理成最终资料结果，或返回可读的无结果提示。
+
 from __future__ import annotations
 
 from app.core.config import get_settings

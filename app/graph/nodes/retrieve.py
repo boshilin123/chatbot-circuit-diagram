@@ -1,3 +1,5 @@
+# 在线召回节点：混合召回后精排，并保留足够候选供后续多轮澄清。
+
 from __future__ import annotations
 
 from typing import Literal
@@ -53,6 +55,7 @@ def retrieve(state: CircuitSearchState) -> dict:
             min_score=settings.reranker_min_score,
         )
 
+    # 将 Pydantic 结果转为字典，便于检查点存储和后续分组；列表顺序仍是精排顺序。
     candidate_documents = [
         doc.model_dump()
         for doc in docs

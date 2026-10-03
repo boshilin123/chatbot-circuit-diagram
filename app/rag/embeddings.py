@@ -1,3 +1,5 @@
+# 向量模型工厂：将检索文本或用户查询编码为稠密向量，供 Milvus 语义检索。
+
 from functools import lru_cache
 
 from langchain_core.embeddings import Embeddings
@@ -6,6 +8,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from app.core.config import get_settings
 
 
+# 缓存模型，避免每次检索都重新加载权重。
 @lru_cache
 def get_embeddings() -> Embeddings:
     """初始化稠密向量模型。"""

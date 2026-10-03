@@ -1,3 +1,5 @@
+# 统一数据路径：从当前源文件位置推导项目根目录，避免数据路径依赖启动目录。
+
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

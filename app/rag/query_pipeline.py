@@ -1,3 +1,5 @@
+# 独立查询准备管线：依次完成意图解析、关键词改写和硬过滤，返回标准查询计划。
+
 from __future__ import annotations
 
 from typing import Any
@@ -16,6 +18,7 @@ def prepare_search_query(
     """在进入 Retriever 前完成意图解析、Query Rewrite 与 Filter 构建。"""
 
     query = query.strip()
+    # 空输入只组装默认查询计划，避免无意义的模型请求和过滤生成。
     if not query:
         return SearchQueryPlan(
             original_query="",

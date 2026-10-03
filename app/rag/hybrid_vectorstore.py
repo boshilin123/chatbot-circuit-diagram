@@ -1,3 +1,5 @@
+# 混合索引管理：同一集合包含 dense 和 sparse 字段，分别支撑语义与关键词检索。
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -17,6 +19,7 @@ DENSE_INDEX_PARAMS = {
     },
 }
 
+# 稀疏字段采用 BM25 度量；与 dense 的 COSINE 度量分别配置，不能互换。
 SPARSE_INDEX_PARAMS = {
     "index_type": "AUTOINDEX",
     "metric_type": "BM25",
@@ -104,6 +107,7 @@ def index_hybrid_documents(
 
     # 3. 写入 Hybrid Collection
     vectorstore = create_hybrid_vectorstore(drop_old=recreate)
+    # 集合已存在时更新同 ID 文档；首次写入则创建文档。
     write_documents = (
         vectorstore.upsert
         if vectorstore.client.has_collection(vectorstore.collection_name)

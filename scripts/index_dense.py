@@ -1,3 +1,5 @@
+# 命令行：加载标准 CSV 文档并写入 Milvus 稠密集合。
+
 from __future__ import annotations
 
 import argparse
@@ -6,6 +8,7 @@ from app.rag.loader import load_circuit_documents
 from app.rag.vectorstore import index_dense_documents
 
 
+# 定义 --recreate 与 --batch-size 参数，返回可复用的命令行解析器。
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Index circuit documents into the dense Milvus collection."
@@ -24,6 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# 解析参数、加载文档、执行稠密索引并打印有效/异常行及写入数量。
 def main() -> None:
     args = build_parser().parse_args()
 

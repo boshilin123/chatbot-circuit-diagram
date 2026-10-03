@@ -1,3 +1,5 @@
+# BM25 与混合召回：构造 Milvus 搜索请求，解析真实文档字段和检索分数。
+
 from __future__ import annotations
 
 from typing import Any, Protocol
@@ -16,9 +18,12 @@ OUTPUT_FIELDS = [
 ]
 
 
+# 声明单路与混合检索的客户端接口，测试时可换成模拟客户端。
 class MilvusSearchClient(Protocol):
+    # 接收 Milvus 单路检索关键字参数，返回服务端原始命中结构。
     def search(self, **kwargs: Any) -> Any: ...
 
+    # 接收多路 AnnSearchRequest 和融合 ranker，返回原始混合检索命中。
     def hybrid_search(self, **kwargs: Any) -> Any: ...
 
 
@@ -29,6 +34,7 @@ def get_milvus_client() -> MilvusClient:
     return MilvusClient(uri=settings.milvus_uri)
 
 
+# 从 Milvus 单查询返回的第一组 hits 提取字段，构造指定类型的结果模型。
 def _parse_results(
     res: Any,
     result_type: type[SparseSearchResult | HybridSearchResult],
@@ -119,6 +125,7 @@ def hybrid_search(
 
     # 1. 创建稠密、稀疏请求
     embeddings = get_embeddings()
+    # Dense 路先编码查询，Sparse 路直接发送原文本，两者表示不同但查询语义相同。
     query_dense_vector = embeddings.embed_query(query)
 
     dense_request = AnnSearchRequest(
@@ -137,6 +144,7 @@ def hybrid_search(
         filter=filter_query,
     )
 
+    # 每一路最多取 candidate_k 条，再融合为 top_k 条；candidate_k 应覆盖所需输出规模。
     reqs = [dense_request, sparse_request]
 
     # 2. 设定 RRF 融合策略

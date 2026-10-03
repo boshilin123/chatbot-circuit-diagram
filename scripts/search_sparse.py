@@ -1,3 +1,5 @@
+# 命令行：直接执行 Milvus 内置 BM25 检索，观察关键词匹配的排名。
+
 from __future__ import annotations
 
 import argparse
@@ -5,6 +7,7 @@ import argparse
 from app.rag.hybrid_search import sparse_search
 
 
+# 读取 query/--top-k，调用 sparse_search 并打印结果元数据。
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a BM25 sparse search.")
     parser.add_argument("query")

@@ -1,3 +1,5 @@
+# Agent 检索工具：连接查询准备和混合精排管线，将结构化结果序列化给 Agent。
+
 from __future__ import annotations
 
 import json
@@ -50,6 +52,7 @@ def search_knowledge_base(query: str, top_k: int = 5) -> str:
         ],
     }
 
+    # 工具约定返回字符串；ensure_ascii=False 保留可读中文，而非输出 Unicode 转义序列。
     return json.dumps(
         payload,
         ensure_ascii=False,

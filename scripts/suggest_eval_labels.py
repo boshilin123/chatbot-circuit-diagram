@@ -1,3 +1,5 @@
+# 人工标注辅助：以字符二元组重合率列出候选，供人工确认真实相关资料 ID。
+
 from __future__ import annotations
 
 import argparse
@@ -20,6 +22,7 @@ def normalize(text: str) -> str:
     ).lower()
 
 
+# 把规范文本的相邻两个字符组成集合，计算粗粒度文本重合。
 def character_bigrams(text: str) -> set[str]:
     text = normalize(text)
     if len(text) < 2:
@@ -49,6 +52,7 @@ def candidate_score(
     )
 
 
+# 读 Benchmark/CSV，可指定一条样本，按辅助分数列出 TopK 标签候选。
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Suggest CSV candidates for manual benchmark labeling."
@@ -71,6 +75,7 @@ def main() -> None:
 
     selected_cases = cases
     if args.case is not None:
+        # --case 按用户习惯从 1 编号，列表索引从 0 开始，因此这里减 1。
         selected_cases = [
             cases[args.case - 1]
         ]

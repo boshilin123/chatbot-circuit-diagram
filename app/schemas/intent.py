@@ -1,3 +1,5 @@
+# 搜索意图模型：同时用作结构化模型输出 schema 和元数据过滤的输入。
+
 from pydantic import BaseModel, Field
 
 
@@ -28,6 +30,7 @@ class SearchIntent(BaseModel):
         default=None,
         description="资料类型，例如针脚定义、整车电路图、线路图。",
     )
+    # 剩余关键词作为软检索信息；default_factory 保证每个意图对象拥有独立列表。
     keywords: list[str] = Field(
         default_factory=list,
         description="除上述字段外仍有检索价值的关键词，只保留用户原问题中明确存在的信息。",

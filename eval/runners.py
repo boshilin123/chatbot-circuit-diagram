@@ -1,3 +1,5 @@
+# 评估执行器：以统一 Retriever(query, top_k) 接口记录每条查询的质量与耗时。
+
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence

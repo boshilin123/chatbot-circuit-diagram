@@ -1,3 +1,5 @@
+# HTTP 接口适配层：校验请求、调用工作流，再转换为前端约定的响应。
+
 import logging
 
 from fastapi import APIRouter
@@ -9,6 +11,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# 把 GraphResponse 转为前端聊天数据，保留旧版单文档字段兼容性。
 def _to_chat_response(response) -> ChatResponseData:
     documents = response.documents or []
 
@@ -21,6 +24,7 @@ def _to_chat_response(response) -> ChatResponseData:
     )
 
 
+# 处理 /api/chat，用 sessionId 标识会话并启动一轮新问题。
 @router.post("/chat", response_model=ApiResult)
 async def chat(request: ChatRequest) -> ApiResult:
     message = request.message.strip()
@@ -44,6 +48,7 @@ async def chat(request: ChatRequest) -> ApiResult:
         return ApiResult.error("检索工作流执行失败，请检查本地配置和依赖服务")
 
 
+# 处理 /api/select，将用户点选的 optionValue 交给工作流恢复执行。
 @router.post("/select", response_model=ApiResult)
 async def select(request: SelectRequest) -> ApiResult:
     try:

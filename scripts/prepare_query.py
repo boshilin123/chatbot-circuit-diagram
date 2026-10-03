@@ -1,3 +1,5 @@
+# 命令行：观察问题经过意图抽取、关键词改写及硬过滤后的标准查询计划。
+
 from __future__ import annotations
 
 import argparse
@@ -5,6 +7,7 @@ import argparse
 from app.rag.query_pipeline import prepare_search_query
 
 
+# 读取 query 参数，准备 SearchQueryPlan 并打印各阶段字段。
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Preview Structured Output + Query Rewrite."
