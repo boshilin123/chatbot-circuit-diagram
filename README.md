@@ -212,6 +212,10 @@ http://127.0.0.1:8011/api/health
 
 ### 运行期文件
 
+BGE-M3 默认加载原始权重，并关闭 Transformers 自动下载转换权重的后台行为，
+避免同时缓存 `.bin` 与转换后的 `.safetensors`。如需启用转换，可显式设置
+`DISABLE_SAFETENSORS_CONVERSION=false`。修改代码后需重启 FastAPI 才能生效。
+
 所有可再生的运行数据统一放在：
 
 ```text

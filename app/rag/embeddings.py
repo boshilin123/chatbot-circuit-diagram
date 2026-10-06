@@ -1,5 +1,6 @@
 # 向量模型工厂：将检索文本或用户查询编码为稠密向量，供 Milvus 语义检索。
 
+import os
 from functools import lru_cache
 
 from langchain_core.embeddings import Embeddings
@@ -14,6 +15,11 @@ def get_embeddings() -> Embeddings:
     """初始化稠密向量模型。"""
 
     settings = get_settings()
+
+    # Transformers may download a converted checkpoint from a Hub PR in the
+    # background after loading .bin weights. Avoid retaining a second full copy;
+    # callers can explicitly set this environment variable to false to opt in.
+    os.environ.setdefault("DISABLE_SAFETENSORS_CONVERSION", "true")
 
     # 1. 创建 Embedding 模型
     embeddings = HuggingFaceEmbeddings(
