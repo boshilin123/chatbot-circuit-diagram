@@ -38,11 +38,7 @@
 - rewrite_query()
 - Metadata Filter
 - SearchQueryPlan
-- Phase 7：Agent + Tools
-- @tool search_knowledge_base()
-- @tool get_document_by_id()
-- create_agent()
-- /api/chat Agent 接入
+- Phase 7：早期 Agent + Tools 实现（已由 LangGraph 节点替代并清理）
 - Phase 8：LangGraph 多轮澄清
 - StateGraph / Conditional Edge
 - InMemorySaver / thread_id
@@ -136,8 +132,8 @@ LANGSMITH_PROJECT="chatbot-circuit-diagram"
 双引号可保留，`start.ps1` 会在启动 Uvicorn 前导入 `.env` 并去掉外层引号。
 如果不需要上报 Trace，设置 `LANGSMITH_TRACING=false`。
 
-当前 Web 主流程由 LangGraph 编排，`app/agents/` 中的 `create_agent()` 实现作为
-Phase 7 的独立 Agent 能力保留，但 `/api/chat` 实际调用 `app/graph/`。
+Web、Studio 和命令行统一使用 `app/graph/` 的 LangGraph 工作流；
+Phase 7 的独立 Agent 与工具封装已清理。
 
 #### 5. 启动 Docker 依赖
 
@@ -419,48 +415,24 @@ Query Rewrite 保留原始车型、ECU 和字母数字编码，不猜测未知�
 
 运行验证继续统一放到最终验证阶段。
 
-## LangChain Agent
+## 统一检索入口
 
-Phase 7 对齐课程中的 `@tool + create_agent` 示例：
+早期 Phase 7 的独立 LangChain Agent 和 `@tool` 封装已移除。查询理解、改写、
+混合召回与精排由 LangGraph 的 `understand_query`、`rewrite_query`、`retrieve`
+节点负责，Web API、Studio 和命令行共用同一工作流。
 
-```text
-User
-  ↓
-create_agent()
-  │
-  ├── 普通问候 → Model 直接回答
-  │
-  └── 资料检索
-          ↓
-   search_knowledge_base()
-          ↓
-   prepare_search_query()
-          ↓
-      retrieve_docs()
-          ↓
-      Tool Result
-          ↓
-       Agent Reply
+命令行运行：
+
+```powershell
+python -m scripts.run_agent "帮我找东风天龙仪表电路图"
 ```
 
-当前 Agent 工具只有两个：
+遇到澄清问题时输入选项编号继续，输入 `q` 退出；最终打印文档 ID、标题和层级路径。
+会话检查点保存在当前进程内，退出后不保留。
 
-- `search_knowledge_base()`：车辆电路图 RAG 检索；
-- `get_document_by_id()`：按文档 ID 精确获取资料。
-
-核心文件：
-
-- `app/agents/circuit_agent.py`：`create_agent()` 与 System Prompt；
-- `app/tools/search_knowledge_base.py`：检索 Tool；
-- `app/tools/get_document.py`：文档 ID Tool；
-- `app/rag/document_store.py`：本地 ID 索引；
-- `scripts/run_agent.py`：Agent 命令行入口。
-
-`/api/chat` 已经接入 Agent。
-
-“候选结果 >5 必须继续澄清、最终 <=5”的硬业务规则不交给 Agent，由下一阶段 LangGraph 实现。
-
-运行验证继续统一放到最终验证阶段。
+`app/rag/pipeline.py` 仍供 `scripts/search_rerank.py` 和 `eval/evaluate.py` 使用；
+`app/rag/query_pipeline.py` 仍供 `scripts/prepare_query.py` 使用。
+`app/rag/document_store.py` 的本地文档 ID 索引及其测试单独保留。
 
 ## LangGraph Workflow
 

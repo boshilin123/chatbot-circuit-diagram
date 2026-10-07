@@ -4,6 +4,10 @@
 > 目标：将现有 Java/Spring Boot + DeepSeek 的车辆电路图资料导航系统，重构为一个可在本地完整运行、可学习、可测试、可用于 AI/Agent 项目展示的 LangChain 1.x + LangGraph + Hybrid RAG 项目。  
 > 当前阶段要求：**只要求本地运行，不部署公网。**
 
+> 2026-10-07 清理说明：Phase 7 的独立 LangChain Agent、工具封装和工具输入 schema
+> 已由 LangGraph 节点替代并移除，`scripts/run_agent.py` 也已切换到同一工作流。
+> 下文 Phase 7 的文件路径和示例保留为历史实施记录，不代表当前调用入口。
+
 ## 当前实施状态（2026-09-24）
 
 当前仓库已经正式进入重构阶段：
